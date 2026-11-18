@@ -64,6 +64,16 @@ npx aws-cdk@2.1148.1 bootstrap                     # solo la primera vez por cue
 npx aws-cdk@2.1148.1 deploy -c pin=TU_PIN -c email=tu@correo.com -c presupuesto=10
 ```
 
+> **¿Antivirus o proxy que inspecciona HTTPS (Avast, Zscaler…)?** Si `pip` falla dentro de Docker,
+> descarga los paquetes en tu máquina y la imagen se construye sin internet:
+>
+> ```bash
+> cd demo-2-pasto
+> uv pip compile requirements.txt --python-platform x86_64-manylinux_2_28 --python-version 3.12 -o /tmp/req-linux.txt
+> uvx pip download -r /tmp/req-linux.txt --no-deps -d wheels --only-binary=:all: --python-version 3.12 \
+>   --implementation cp --platform manylinux_2_17_x86_64 --platform manylinux_2_28_x86_64 --platform any
+> ```
+
 Al terminar verás `DemoUrl` (https://xxxx.cloudfront.net). En las diapositivas presiona **C** y pega la URL y el PIN para que el QR quede listo.
 
 ### 💸 Apagar todo después del evento

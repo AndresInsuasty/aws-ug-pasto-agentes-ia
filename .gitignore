@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 *.pem
+*.crt
 
 # Material privado / de referencia (plantillas, PDFs, acuerdos)
 docs/
@@ -27,3 +28,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Paquetes descargados para construir la imagen sin internet (ver Dockerfile)
+*.whl
