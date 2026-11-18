@@ -9,7 +9,7 @@ Ejecutar:
 
 from strands import Agent, tool
 from strands.models import BedrockModel
-from strands_tools import calculator, current_time
+from herramientas import calcular, hora_actual
 
 # 1) EL MOTOR: un LLM en Amazon Bedrock
 motor = BedrockModel(
@@ -29,7 +29,7 @@ def contar_letras(palabra: str, letra: str) -> int:
 agente = Agent(
     model=motor,
     system_prompt="Eres un asistente pastuso, amable y breve. Responde en español.",
-    tools=[calculator, current_time, contar_letras],
+    tools=[calcular, hora_actual, contar_letras],
 )
 
 if __name__ == "__main__":

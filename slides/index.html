@@ -391,7 +391,7 @@
   <pre><code class="language-python" data-trim data-line-numbers="1-3|5-9|11-15|17-22|24">
 from strands import Agent, tool
 from strands.models import BedrockModel
-from strands_tools import calculator, current_time
+from herramientas import calcular, hora_actual
 
 # 🧠 1) EL MOTOR: un LLM en Amazon Bedrock
 motor = BedrockModel(
@@ -409,7 +409,7 @@ def contar_letras(palabra: str, letra: str) -> int:
 agente = Agent(
     model=motor,
     system_prompt="Eres un asistente pastuso, amable y breve.",
-    tools=[calculator, current_time, contar_letras],
+    tools=[calcular, hora_actual, contar_letras],
 )
 
 agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
@@ -417,7 +417,7 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
   <aside class="notes">
     Avanza con la flecha y se resalta cada parte:
     1) Importamos Strands.  2) MOTOR: BedrockModel con Nova Lite.  3) RUEDA propia: el decorador @tool convierte una función en herramienta; el docstring le explica al LLM para qué sirve.
-    4) AUTO: Agent junta motor + prompt + herramientas (calculator y current_time vienen listas en strands-agents-tools).
+    4) AUTO: Agent junta motor + prompt + herramientas (calcular y hora_actual están en demo-1-simple/herramientas.py, también hechas con @tool).
     5) ¡Arrancar! Una sola línea.
     Dato curioso: los LLM son malos contando letras (tokens) → por eso le damos una herramienta.
   </aside>
@@ -429,8 +429,8 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
   <h1>Demo <span class="g">en vivo</span></h1>
   <div class="terminal">
     <div><span class="p">$</span> uv run python demo-1-simple/agente_simple.py</div>
-    <div class="muted" style="margin-top:8px">🔧 Tool #1: current_time</div>
-    <div class="muted">🔧 Tool #2: calculator</div>
+    <div class="muted" style="margin-top:8px">🔧 Tool #1: hora_actual</div>
+    <div class="muted">🔧 Tool #2: calcular</div>
     <div class="muted">🔧 Tool #3: contar_letras</div>
   </div>
   <aside class="notes">
