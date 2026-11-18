@@ -17,7 +17,7 @@ from strands import tool
 
 from . import conocimiento
 
-log = logging.getLogger("galeritas")
+log = logging.getLogger("agente-galeras")
 
 IMAGE_MODEL_ID = os.getenv("IMAGE_MODEL_ID", "stability.stable-image-core-v1:1")
 IMAGE_REGION = os.getenv("IMAGE_REGION", os.getenv("AWS_REGION", "us-west-2"))

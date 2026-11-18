@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Infraestructura de la demo 'Galeritas' (AWS CDK).
+"""Infraestructura de la demo 'Agente Galeras' (AWS CDK).
 
 Celulares ─HTTPS─► CloudFront ─► Application Load Balancer ─► Fargate (contenedor) ─► Bedrock (Nova)
 
@@ -25,7 +25,7 @@ from aws_cdk import (
 from constructs import Construct
 
 
-class GaleritasStack(cdk.Stack):
+class AgenteGalerasStack(cdk.Stack):
     def __init__(self, scope: Construct, id_: str, **kwargs) -> None:
         super().__init__(scope, id_, **kwargs)
 
@@ -44,7 +44,7 @@ class GaleritasStack(cdk.Stack):
         cluster = ecs.Cluster(self, "Cluster", vpc=vpc)
 
         servicio = ecs_patterns.ApplicationLoadBalancedFargateService(
-            self, "Galeritas",
+            self, "AgenteGaleras",
             cluster=cluster,
             cpu=1024, memory_limit_mib=2048,
             desired_count=1,  # el muro en vivo vive en memoria: una sola tarea
@@ -65,7 +65,7 @@ class GaleritasStack(cdk.Stack):
                     "IMAGE_REGION": region_imagen,
                     "ACCESS_CODE": pin,
                 },
-                log_driver=ecs.LogDrivers.aws_logs(stream_prefix="galeritas", log_retention=logs.RetentionDays.ONE_WEEK),
+                log_driver=ecs.LogDrivers.aws_logs(stream_prefix="agente-galeras", log_retention=logs.RetentionDays.ONE_WEEK),
             ),
             min_healthy_percent=0, max_healthy_percent=100,
             circuit_breaker=ecs.DeploymentCircuitBreaker(rollback=True),
@@ -124,6 +124,6 @@ class GaleritasStack(cdk.Stack):
 
 
 app = cdk.App()
-GaleritasStack(app, "GaleritasPasto", env=cdk.Environment(region=app.node.try_get_context("region") or "us-west-2"))
+AgenteGalerasStack(app, "AgenteGalerasPasto", env=cdk.Environment(region=app.node.try_get_context("region") or "us-west-2"))
 cdk.Tags.of(app).add("proyecto", "aws-ug-pasto")
 app.synth()

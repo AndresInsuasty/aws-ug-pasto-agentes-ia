@@ -9,7 +9,7 @@ Charla del **AWS User Group Pasto** 🇨🇴. Explica qué es un agente de IA co
 |---|---|
 | 🎤 **Diapositivas** | [`slides/`](slides/index.html): ábrelas en el navegador, no necesitan servidor |
 | 🛠️ **Demo 1** | [`demo-1-simple/`](demo-1-simple/agente_simple.py): tu primer agente con Strands en ~20 líneas |
-| 🌋 **Demo 2** | [`demo-2-pasto/`](demo-2-pasto/): *Galeritas*, un agente guía de Pasto para que el público use desde el celular |
+| 🌋 **Demo 2** | [`demo-2-pasto/`](demo-2-pasto/): el *Agente Galeras*, un guía de Pasto para que el público use desde el celular |
 | 🏗️ **Infra** | [`infra/`](infra/app.py): AWS CDK → Fargate + ALB + CloudFront + alerta de presupuesto |
 
 ## Arquitectura de la demo 2
@@ -40,7 +40,7 @@ uv sync
 uv run python demo-1-simple/agente_simple.py
 ```
 
-## Demo 2: Galeritas en tu máquina
+## Demo 2: Agente Galeras en tu máquina
 
 ```bash
 cd demo-2-pasto

@@ -1,4 +1,4 @@
-"""Agente guía de Pasto — FastAPI + Strands Agents + Amazon Bedrock (Nova).
+"""Agente Galeras (guía de Pasto) — FastAPI + Strands Agents + Amazon Bedrock (Nova).
 
 Rutas:
   /            app para el celular (chat)
@@ -33,7 +33,7 @@ MAX_CHARS = 400
 
 STATIC = Path(__file__).parent / "static"
 
-SYSTEM_PROMPT = """Eres "Galeritas", un guía turístico pastuso, alegre y orgulloso de Nariño.
+SYSTEM_PROMPT = """Eres el "Agente Galeras", un guía turístico pastuso, alegre y orgulloso de Nariño.
 Hablas español de Colombia y de vez en cuando usas expresiones pastusas como "¡Achichay!" (qué frío) o "¡Ananay!" (qué bonito).
 
 Reglas:
