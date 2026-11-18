@@ -68,7 +68,7 @@
 
 <div class="grid">
   <section class="col"><h2>🧠 Lo que el agente está pensando</h2><div id="feed"></div></section>
-  <section class="col"><h2>🎨 Galería del carnaval · Stable Image en Bedrock</h2><div id="galeria"><div class="vacio">Pídele a Galeritas que diseñe tu carroza 🎭</div></div></section>
+  <section class="col"><h2>🎨 Galería del carnaval · imágenes creadas por el agente</h2><div id="galeria"><div class="vacio">Pídele a Galeritas que diseñe tu carroza 🎭</div></div></section>
 </div>
 
 <footer>
@@ -94,7 +94,7 @@ function agregarFeed(html, cls){
 function agregarImagen(ev){
   const g = $("#galeria"); g.querySelector(".vacio")?.remove();
   const f = document.createElement("figure");
-  f.innerHTML = `<img src="${esc(ev.url)}" alt=""><figcaption><b>${esc(ev.titulo)}</b> · ${esc(ev.apodo)}</figcaption>`;
+  f.innerHTML = `<img src="${esc(ev.url)}" alt=""><figcaption><b>${esc(ev.titulo)}</b> · ${esc(ev.apodo)}${ev.motor ? " · " + esc(ev.motor) : ""}</figcaption>`;
   g.prepend(f); while (g.children.length > 9) g.lastChild.remove();
 }
 function stats(s){

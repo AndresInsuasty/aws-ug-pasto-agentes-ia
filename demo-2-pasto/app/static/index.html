@@ -128,7 +128,7 @@ function md(t){
 }
 function burbuja(cls, html){ const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; $("#chat").appendChild(d); bajar(); return d; }
 function bajar(){ $("#chat").scrollTop = $("#chat").scrollHeight; }
-const ICONOS = { clima: "🌦️ clima real", conocimiento: "📚 base de conocimiento", imagen: "🎨 Stable Image" };
+const ICONOS = { clima: "🌦️ clima real", conocimiento: "📚 base de conocimiento", imagen: "🎨 imagen" };
 
 async function enviar(texto){
   texto = (texto || "").trim(); if (!texto || ocupado || !sesion) return;
@@ -157,7 +157,7 @@ async function enviar(texto){
         if (ev.tipo === "texto") { acumulado += ev.delta; const h = md(acumulado); if (h) cuerpo.innerHTML = h; }
         else if (ev.tipo === "herramienta") { const t = document.createElement("span"); t.className = "tool " + ev.nombre; t.textContent = "🔧 " + (ICONOS[ev.nombre] || ev.nombre); tools.appendChild(t); }
         else if (ev.tipo === "generando") { cargando = document.createElement("div"); cargando.className = "img"; cargando.innerHTML = '<div class="cargando">🎨 Pintando la imagen <span class="dots"><span></span><span></span><span></span></span></div>'; medios.appendChild(cargando); }
-        else if (ev.tipo === "imagen") { const f = document.createElement("figure"); f.className = "img"; f.style.margin = "8px 0 0"; f.innerHTML = `<img src="${ev.url}" alt=""><figcaption>${esc(ev.titulo)} · también está en el muro 📺</figcaption>`; if (cargando) { cargando.replaceWith(f); cargando = null; } else medios.appendChild(f); f.querySelector("img").onload = bajar; }
+        else if (ev.tipo === "imagen") { const f = document.createElement("figure"); f.className = "img"; f.style.margin = "8px 0 0"; f.innerHTML = `<img src="${ev.url}" alt=""><figcaption>${esc(ev.titulo)} · 🎨 ${esc(ev.motor || "")} · también está en el muro 📺</figcaption>`; if (cargando) { cargando.replaceWith(f); cargando = null; } else medios.appendChild(f); f.querySelector("img").onload = bajar; }
         else if (ev.tipo === "error") { cuerpo.innerHTML = "😵 Ups, el motor tosió: " + esc(ev.mensaje); }
         bajar();
       }

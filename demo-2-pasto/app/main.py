@@ -100,12 +100,20 @@ def health():
     return {"ok": True, "modelo": MODEL_ID}
 
 
-@app.get("/img/{id_}.png")
-def imagen(id_: str):
-    datos = muro.imagenes.get(id_)
-    if not datos:
+TIPOS_IMAGEN = {"png": "image/png", "svg": "image/svg+xml"}
+
+
+@app.get("/img/{id_}.{ext}")
+def imagen(id_: str, ext: str):
+    guardada = muro.imagenes.get(id_)
+    if not guardada or guardada[1] != ext:
         raise HTTPException(404)
-    return Response(datos, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+    return Response(guardada[0], media_type=TIPOS_IMAGEN[ext], headers={
+        "Cache-Control": "public, max-age=86400",
+        # aunque un SVG se abra directo, no puede ejecutar nada
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 # ---------------------------------------------------------------- API

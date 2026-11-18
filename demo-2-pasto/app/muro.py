@@ -9,7 +9,7 @@ class Muro:
     def __init__(self, max_imagenes: int = 60, historial: int = 40):
         self._suscriptores: set[asyncio.Queue] = set()
         self.historial: deque[dict] = deque(maxlen=historial)
-        self.imagenes: "OrderedDict[str, bytes]" = OrderedDict()
+        self.imagenes: "OrderedDict[str, tuple[bytes, str]]" = OrderedDict()
         self._max_imagenes = max_imagenes
         self.uso_herramientas: Counter = Counter()
         self.preguntas = 0
@@ -45,7 +45,7 @@ class Muro:
         }
 
     # --- imágenes en memoria ------------------------------------------
-    def guardar_imagen(self, id_: str, datos: bytes) -> None:
-        self.imagenes[id_] = datos
+    def guardar_imagen(self, id_: str, datos: bytes, ext: str = "png") -> None:
+        self.imagenes[id_] = (datos, ext)
         while len(self.imagenes) > self._max_imagenes:
             self.imagenes.popitem(last=False)

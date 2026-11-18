@@ -497,13 +497,13 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
       <text x="695" y="310" class="sub">🎯 prompt · 🧳 memoria</text>
       <!-- servicios -->
       <rect x="930" y="30" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff9900"/><text x="1045" y="70" font-size="30">🧠</text><text x="1045" y="102" font-size="18" font-weight="700">Bedrock · Nova</text><text x="1045" y="124" class="sub">el motor</text>
-      <rect x="930" y="160" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff57e9"/><text x="1045" y="200" font-size="30">🎨</text><text x="1045" y="232" font-size="18" font-weight="700">Stable Image</text><text x="1045" y="254" class="sub">rueda: imágenes</text>
+      <rect x="930" y="160" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff57e9"/><text x="1045" y="200" font-size="30">🎨</text><text x="1045" y="232" font-size="18" font-weight="700">Imágenes</text><text x="1045" y="254" class="sub">Stable Image o SVG del motor</text>
       <rect x="930" y="290" width="230" height="150" rx="18" style="fill:#151d2e;stroke:#41b3ff"/><text x="1045" y="330" font-size="30">🌦️ 📚</text><text x="1045" y="364" font-size="18" font-weight="700">Clima real</text><text x="1045" y="388" font-size="18" font-weight="700">+ Base de Pasto</text><text x="1045" y="412" class="sub">ruedas: datos</text>
     </g>
   </svg>
   <aside class="notes">
     Recorre de izquierda a derecha: sus celulares entran por CloudFront (HTTPS) → Load Balancer → contenedor en Fargate.
-    Dentro está el agente Strands: el motor es Nova en Bedrock; tiene 3 ruedas: clima real (API Open-Meteo), base de conocimiento de Pasto, y generación de imágenes con Stable Image Core (Stability AI, también dentro de Bedrock: ¡otro motor del concesionario!).
+    Dentro está el agente Strands: el motor es Nova en Bedrock; tiene 3 ruedas: clima real (API Open-Meteo), base de conocimiento de Pasto, y generación de imágenes: intenta con Stable Image Core (Stability AI en Bedrock) y si no hay cuota, el MISMO motor Nova dibuja la imagen escribiendo código SVG. ¡Mismo motor, otra carrocería!
     Todo lo que pasa se transmite en vivo al muro (pantalla grande).
   </aside>
 </section>
