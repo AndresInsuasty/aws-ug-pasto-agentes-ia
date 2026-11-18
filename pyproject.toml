@@ -12,6 +12,7 @@ dependencies = [
     "openai>=3.55.0",
     "python-dotenv>=1.2.4",
     "strands-agents>=1.65.0",
+    "tzdata>=2026.6",
     "uvicorn[standard]>=0.54.0",
 ]
 

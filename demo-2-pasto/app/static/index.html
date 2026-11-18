@@ -139,7 +139,7 @@ async function enviar(texto){
   const cuerpo = document.createElement("div"); cuerpo.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
   const medios = document.createElement("div");
   b.append(tools, cuerpo, medios);
-  let acumulado = ""; let cargando = null;
+  let acumulado = "";
   try {
     const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sesion: sesion.sesion, mensaje: texto }) });
@@ -156,13 +156,26 @@ async function enviar(texto){
         const ev = JSON.parse(linea.slice(6));
         if (ev.tipo === "texto") { acumulado += ev.delta; const h = md(acumulado); if (h) cuerpo.innerHTML = h; }
         else if (ev.tipo === "herramienta") { const t = document.createElement("span"); t.className = "tool " + ev.nombre; t.textContent = "🔧 " + (ICONOS[ev.nombre] || ev.nombre); tools.appendChild(t); }
-        else if (ev.tipo === "generando") { cargando = document.createElement("div"); cargando.className = "img"; cargando.innerHTML = '<div class="cargando">🎨 Pintando la imagen <span class="dots"><span></span><span></span><span></span></span></div>'; medios.appendChild(cargando); }
-        else if (ev.tipo === "imagen") { const f = document.createElement("figure"); f.className = "img"; f.style.margin = "8px 0 0"; f.innerHTML = `<img src="${ev.url}" alt=""><figcaption>${esc(ev.titulo)} · 🎨 ${esc(ev.motor || "")} · también está en el muro 📺</figcaption>`; if (cargando) { cargando.replaceWith(f); cargando = null; } else medios.appendChild(f); f.querySelector("img").onload = bajar; }
+        else if (ev.tipo === "generando") {
+          const f = document.createElement("figure"); f.className = "img"; f.style.margin = "8px 0 0"; f.dataset.id = ev.id;
+          f.innerHTML = '<div class="cargando">🎨 El ilustrador está pensando <span class="dots"><span></span><span></span><span></span></span></div><figcaption></figcaption>';
+          f.querySelector("figcaption").textContent = "✏️ " + ev.titulo; medios.appendChild(f); bajar();
+        }
+        else if (ev.tipo === "boceto" || ev.tipo === "imagen") {
+          let f = medios.querySelector(`figure[data-id="${ev.id}"]`);
+          if (!f) { f = document.createElement("figure"); f.className = "img"; f.style.margin = "8px 0 0"; f.dataset.id = ev.id; f.innerHTML = "<figcaption></figcaption>"; medios.appendChild(f); }
+          let img = f.querySelector("img");
+          if (!img) { f.querySelector(".cargando")?.remove(); img = document.createElement("img"); img.alt = ""; f.prepend(img); img.onload = bajar; }
+          img.src = ev.tipo === "boceto" ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ev.svg) : ev.url;
+          f.querySelector("figcaption").textContent = ev.tipo === "boceto"
+            ? "✏️ Dibujando en vivo: " + ev.titulo
+            : ev.titulo + " · 🎨 " + (ev.motor || "") + " · también está en el muro 📺";
+        }
+        else if (ev.tipo === "imagen_error") { medios.querySelector(`figure[data-id="${ev.id}"]`)?.remove(); }
         else if (ev.tipo === "error") { cuerpo.innerHTML = "😵 Ups, el motor tosió: " + esc(ev.mensaje); }
         bajar();
       }
     }
-    if (cargando) cargando.remove();
     if (cuerpo.querySelector(".dots")) cuerpo.textContent = medios.children.length ? "" : "…";
   } catch (e) { cuerpo.textContent = "😵 " + e.message; }
   ocupado = false; $("#btnEnviar").disabled = false;

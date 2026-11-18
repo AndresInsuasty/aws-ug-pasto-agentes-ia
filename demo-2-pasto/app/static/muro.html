@@ -40,8 +40,10 @@
   #galeria{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:12px;min-height:0}
   #galeria figure{margin:0;position:relative;border-radius:14px;overflow:hidden;background:var(--panel2);animation:in .6s}
   #galeria figure:first-child{grid-column:span 2;grid-row:span 2;box-shadow:0 0 0 3px var(--pink)}
-  #galeria img{width:100%;height:100%;object-fit:cover;display:block}
-  #galeria figcaption{position:absolute;left:0;right:0;bottom:0;padding:8px 10px;font-size:13px;background:linear-gradient(transparent,#000c)}
+  #galeria figure.dibujando{box-shadow:0 0 0 3px var(--green),0 0 30px #00e58266;animation:in .6s, brillo 1.2s ease-in-out infinite alternate}
+  @keyframes brillo{to{box-shadow:0 0 0 3px var(--green),0 0 50px #00e582aa}}
+  #galeria img{width:100%;height:100%;object-fit:contain;display:block;background:#0b1020}
+  #galeria figcaption{position:absolute;left:8px;bottom:8px;max-width:calc(100% - 16px);padding:4px 10px;font-size:12px;border-radius:8px;background:#000a;backdrop-filter:blur(4px)}
   .vacio{grid-column:1/-1;grid-row:1/-1;display:grid;place-items:center;color:var(--muted);font-size:20px;text-align:center}
   footer{display:flex;gap:14px;align-items:center}
   footer .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
@@ -93,9 +95,17 @@ function agregarFeed(html, cls){
 }
 function agregarImagen(ev){
   const g = $("#galeria"); g.querySelector(".vacio")?.remove();
-  const f = document.createElement("figure");
-  f.innerHTML = `<img src="${esc(ev.url)}" alt=""><figcaption><b>${esc(ev.titulo)}</b> · ${esc(ev.apodo)}${ev.motor ? " · " + esc(ev.motor) : ""}</figcaption>`;
-  g.prepend(f); while (g.children.length > 9) g.lastChild.remove();
+  let f = ev.id ? g.querySelector(`figure[data-id="${ev.id}"]`) : null;
+  if (!f) {
+    f = document.createElement("figure"); if (ev.id) f.dataset.id = ev.id;
+    f.innerHTML = '<img alt=""><figcaption></figcaption>';
+    g.prepend(f); while (g.children.length > 9) g.lastChild.remove();
+  }
+  f.querySelector("img").src = ev.tipo === "boceto" ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ev.svg) : ev.url;
+  f.classList.toggle("dibujando", ev.tipo === "boceto");
+  f.querySelector("figcaption").innerHTML = ev.tipo === "boceto"
+    ? `✏️ <b>Dibujando en vivo:</b> ${esc(ev.titulo)} · ${esc(ev.apodo)}`
+    : `<b>${esc(ev.titulo)}</b> · ${esc(ev.apodo)}${ev.motor ? " · " + esc(ev.motor) : ""}`;
 }
 function stats(s){
   $("#sPersonas").textContent = s.personas; $("#sPreguntas").textContent = s.preguntas; $("#sImagenes").textContent = s.imagenes;
@@ -117,7 +127,8 @@ function conectar(){
       case "pregunta": agregarFeed(`<span class="who">${esc(ev.apodo)}:</span> ${esc(ev.texto)}`); break;
       case "herramienta": agregarFeed(`🔧 ${NOMBRES[ev.nombre] || ev.nombre} <span style="opacity:.7">· ${esc(ev.detalle)}</span>`, "tool " + ev.nombre); if (!ev.historial) pulso(ev.nombre); break;
       case "respuesta": agregarFeed(`🌋 ${esc(ev.texto.length > 180 ? ev.texto.slice(0, 180) + "…" : ev.texto)}`, "resp"); break;
-      case "imagen": agregarImagen(ev); break;
+      case "imagen": case "boceto": agregarImagen(ev); break;
+      case "imagen_error": document.querySelector(`#galeria figure[data-id="${ev.id}"]`)?.remove(); break;
     }
   };
   es.onerror = () => { es.close(); setTimeout(conectar, 3000); };

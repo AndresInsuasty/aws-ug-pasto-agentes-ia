@@ -1,4 +1,4 @@
-"""Agente Galeras (guía de Pasto) — FastAPI + Strands Agents + Amazon Bedrock (Nova).
+"""Agente Galeras (guía de Pasto) — FastAPI + Strands Agents + Amazon Bedrock (gpt-oss + Kimi).
 
 Rutas:
   /            app para el celular (chat)
@@ -20,13 +20,12 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 from strands import Agent
 from strands.agent.conversation_manager import SlidingWindowConversationManager
-from strands.models import BedrockModel
+from strands.models.openai import OpenAIModel
 
 from .herramientas import crear_herramientas
+from .motor import LLM_API_KEY, LLM_BASE_URL, MODEL_ID
 from .muro import Muro
 
-MODEL_ID = os.getenv("MODEL_ID", "us.amazon.nova-lite-v1:0")
-AWS_REGION = os.getenv("AWS_REGION", "us-west-2")
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
 MAX_SESIONES = int(os.getenv("MAX_SESIONES", "400"))
 MAX_CHARS = 400
@@ -41,8 +40,9 @@ Reglas:
 - Para datos de Pasto/Nariño usa SIEMPRE la herramienta buscar_info_pasto; si no encuentras el dato, dilo con honestidad.
 - Para clima, ropa recomendada o planes al aire libre usa clima_actual (datos reales).
 - Si piden dibujar, diseñar o imaginar algo (carrozas, cuyes astronautas, paisajes...) usa generar_imagen
-  con un prompt visual detallado en inglés. Para carrozas del carnaval describe: giant colorful parade float,
-  papier-mâché sculptures, Carnaval de Negros y Blancos, Pasto Colombia, festive crowd, Andean mountains.
+  con una descripción visual detallada en inglés. Para carrozas del carnaval describe: giant colorful parade float
+  with big papier-mâché sculptures, Carnaval de Negros y Blancos in Pasto Colombia, festive crowd, Andean mountains, Galeras volcano.
+- Mientras se dibuja la imagen, el usuario la ve aparecer en vivo: no describas el SVG ni pongas enlaces.
 - Puedes combinar varias herramientas en una misma respuesta.
 - Mantente en temas de Pasto, Nariño, turismo, cultura, la nube de AWS y la IA. Sé respetuoso siempre.
 """
@@ -61,7 +61,10 @@ class Sesion:
         self._cola: asyncio.Queue | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self.agente = Agent(
-            model=BedrockModel(model_id=MODEL_ID, region_name=AWS_REGION, temperature=0.6, max_tokens=900),
+            model=OpenAIModel(
+                client_args={"base_url": LLM_BASE_URL, "api_key": LLM_API_KEY},
+                model_id=MODEL_ID, params={"temperature": 0.6, "max_tokens": 1200},
+            ),
             system_prompt=SYSTEM_PROMPT,
             tools=crear_herramientas(self),
             conversation_manager=SlidingWindowConversationManager(window_size=12),
@@ -78,7 +81,7 @@ sesiones: "OrderedDict[str, Sesion]" = OrderedDict()
 
 
 def limpiar(texto: str) -> str:
-    """Nova a veces 'piensa en voz alta' con <thinking>...</thinking>; eso no se muestra."""
+    """Algunos modelos 'piensan en voz alta' con <thinking>...</thinking>; eso no se muestra."""
     texto = re.sub(r"<thinking>.*?</thinking>", "", texto, flags=re.S)
     texto = re.sub(r"<thinking>.*", "", texto, flags=re.S)
     return re.sub(r"</?response>", "", texto).strip()
@@ -181,7 +184,11 @@ async def chat(datos: Mensaje):
             respuesta = ""
             try:
                 while True:
-                    ev = await cola.get()
+                    try:
+                        ev = await asyncio.wait_for(cola.get(), timeout=10)
+                    except asyncio.TimeoutError:
+                        yield ": ping\n\n"  # mantiene viva la conexión (CloudFront/ALB) mientras se dibuja
+                        continue
                     if ev is None:
                         break
                     if ev["tipo"] == "texto":

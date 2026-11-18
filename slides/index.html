@@ -283,7 +283,7 @@
       <path d="M645 300 L800 316 Q852 322 868 338 L868 352 L650 352 Z" fill="#ff99002e" stroke="#ff9900" stroke-width="2" stroke-dasharray="6 5"/>
       <use href="#motor" x="700" y="296" width="80" height="62"/>
       <g class="callout"><path d="M745 298 L860 114"/><rect x="760" y="40" width="230" height="74" rx="14"/>
-      <text x="875" y="72" text-anchor="middle" font-size="24" font-weight="700" fill="#ff9900">🧠 Motor</text><text x="875" y="100" text-anchor="middle" font-size="18" fill="#93a0bd">el LLM (Nova, Claude…)</text></g>
+      <text x="875" y="72" text-anchor="middle" font-size="24" font-weight="700" fill="#ff9900">🧠 Motor</text><text x="875" y="100" text-anchor="middle" font-size="18" fill="#93a0bd">el LLM (gpt-oss, Kimi…)</text></g>
     </g>
     <!-- volante -->
     <g class="fragment" data-fragment-index="2">
@@ -388,8 +388,8 @@
     <svg viewBox="0 0 220 170" width="170" height="131" style="filter:hue-rotate(250deg)"><use href="#motor"/></svg>
   </div>
   <div class="modelos">
-    <span class="pill nova">Amazon Nova</span><span class="pill">Anthropic Claude</span><span class="pill">Meta Llama</span>
-    <span class="pill">Mistral</span><span class="pill">OpenAI gpt-oss</span><span class="pill">DeepSeek</span><span class="pill">Qwen</span><span class="pill">…</span>
+    <span class="pill nova">OpenAI gpt-oss</span><span class="pill nova">Moonshot Kimi</span><span class="pill">Amazon Nova</span><span class="pill">Anthropic Claude</span>
+    <span class="pill">Meta Llama</span><span class="pill">Mistral</span><span class="pill">DeepSeek</span><span class="pill">Qwen</span><span class="pill">Z.ai GLM</span><span class="pill">…</span>
   </div>
   <div class="row small" style="gap:18px;margin-top:10px">
     <span class="fragment">🔌 Una sola API</span><span class="fragment">💳 Pagas por uso</span><span class="fragment">🔒 Tus datos no entrenan modelos</span>
@@ -397,7 +397,8 @@
   <aside class="notes">
     Amazon Bedrock: servicio administrado donde eliges el motor (modelo) que quieres sin montar servidores ni GPUs.
     Cambias de motor cambiando un parámetro (model_id). Pagas por tokens usados.
-    Hoy usamos Amazon Nova: rápido y barato, ideal para demos con mucha gente.
+    Hoy usamos DOS motores del concesionario: gpt-oss-120b (OpenAI, open-weight) para conversar y decidir, y Kimi K2.5 (Moonshot) como ilustrador.
+    Los usamos por el endpoint de Bedrock compatible con la API de OpenAI: mismo código que usarías con OpenAI, pero corriendo en tu cuenta de AWS.
   </aside>
 </section>
 
@@ -427,13 +428,13 @@
   <h3 style="margin-bottom:.3em;position:relative;z-index:3">Tu primer agente en <span class="g">~20 líneas</span></h3>
   <pre><code class="language-python" data-trim data-line-numbers="1-3|5-9|11-15|17-22|24">
 from strands import Agent, tool
-from strands.models import BedrockModel
+from strands.models.openai import OpenAIModel
 from herramientas import calcular, hora_actual
 
-# 🧠 1) EL MOTOR: un LLM en Amazon Bedrock
-motor = BedrockModel(
-    model_id="us.amazon.nova-lite-v1:0",
-    region_name="us-west-2",
+# 🧠 1) EL MOTOR: gpt-oss en Amazon Bedrock
+motor = OpenAIModel(
+    model_id="openai.gpt-oss-120b",
+    client_args={"base_url": BEDROCK_URL, "api_key": API_KEY},
 )
 
 # 🔧 2) UNA RUEDA: cualquier función de Python
@@ -453,7 +454,7 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
   </code></pre>
   <aside class="notes">
     Avanza con la flecha y se resalta cada parte:
-    1) Importamos Strands.  2) MOTOR: BedrockModel con Nova Lite.  3) RUEDA propia: el decorador @tool convierte una función en herramienta; el docstring le explica al LLM para qué sirve.
+    1) Importamos Strands.  2) MOTOR: OpenAIModel apuntando al endpoint de Bedrock con gpt-oss-120b (la URL y la API key vienen del archivo .env).  3) RUEDA propia: el decorador @tool convierte una función en herramienta; el docstring le explica al LLM para qué sirve.
     4) AUTO: Agent junta motor + prompt + herramientas (calcular y hora_actual están en demo-1-simple/herramientas.py, también hechas con @tool).
     5) ¡Arrancar! Una sola línea.
     Dato curioso: los LLM son malos contando letras (tokens) → por eso le damos una herramienta.
@@ -466,13 +467,16 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
   <h1>Demo <span class="g">en vivo</span></h1>
   <div class="terminal">
     <div><span class="p">$</span> uv run python demo-1-simple/agente_simple.py</div>
-    <div class="muted" style="margin-top:8px">🔧 Tool #1: hora_actual</div>
-    <div class="muted">🔧 Tool #2: calcular</div>
-    <div class="muted">🔧 Tool #3: contar_letras</div>
+    <div class="muted" style="margin-top:8px">💭 We need to call the tools…</div>
+    <div style="color:var(--orange)">🔧 Herramienta #1: hora_actual</div>
+    <div style="color:var(--orange)">🔧 Herramienta #2: calcular</div>
+    <div style="color:var(--orange)">🔧 Herramienta #3: contar_letras</div>
+    <div style="margin-top:8px">✅ En Bogotá son las 7:45 p.m. …</div>
   </div>
   <aside class="notes">
     Cambiar a la terminal (Alt+Tab). Ejecutar: uv run python demo-1-simple/agente_simple.py
-    Mostrar cómo el agente DECIDE usar las 3 herramientas por sí solo.
+    Mostrar cómo el agente DECIDE usar las 3 herramientas por sí solo. En gris (💭) se ve el motor PENSANDO, en naranja (🔧) ACTUANDO, y al final RESPONDE: es el ciclo de la diapositiva anterior.
+    Antes de la charla, en esa terminal: Remove-Item Env:SSLKEYLOGFILE  y  $env:SSL_CERT_FILE="$env:USERPROFILE\.aws\ca-bundle-avast.pem" (o desactiva el escudo web de Avast).
     Plan B si falla internet: explicar la salida de esta diapositiva.
   </aside>
 </section>
@@ -533,14 +537,14 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
       <text x="695" y="272" class="sub">FastAPI · streaming</text>
       <text x="695" y="310" class="sub">🎯 prompt · 🧳 memoria</text>
       <!-- servicios -->
-      <rect x="930" y="30" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff9900"/><text x="1045" y="70" font-size="30">🧠</text><text x="1045" y="102" font-size="18" font-weight="700">Bedrock · Nova</text><text x="1045" y="124" class="sub">el motor</text>
-      <rect x="930" y="160" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff57e9"/><text x="1045" y="200" font-size="30">🎨</text><text x="1045" y="232" font-size="18" font-weight="700">Imágenes</text><text x="1045" y="254" class="sub">Stable Image o SVG del motor</text>
+      <rect x="930" y="30" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff9900"/><text x="1045" y="70" font-size="30">🧠</text><text x="1045" y="102" font-size="18" font-weight="700">Bedrock · gpt-oss</text><text x="1045" y="124" class="sub">el motor que conversa</text>
+      <rect x="930" y="160" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff57e9"/><text x="1045" y="200" font-size="30">🎨</text><text x="1045" y="232" font-size="18" font-weight="700">Bedrock · Kimi K2.5</text><text x="1045" y="254" class="sub">rueda: ilustrador SVG</text>
       <rect x="930" y="290" width="230" height="150" rx="18" style="fill:#151d2e;stroke:#41b3ff"/><text x="1045" y="330" font-size="30">🌦️ 📚</text><text x="1045" y="364" font-size="18" font-weight="700">Clima real</text><text x="1045" y="388" font-size="18" font-weight="700">+ Base de Pasto</text><text x="1045" y="412" class="sub">ruedas: datos</text>
     </g>
   </svg>
   <aside class="notes">
     Recorre de izquierda a derecha: sus celulares entran por CloudFront (HTTPS) → Load Balancer → contenedor en Fargate.
-    Dentro está el agente Strands: el motor es Nova en Bedrock; tiene 3 ruedas: clima real (API Open-Meteo), base de conocimiento de Pasto, y generación de imágenes: intenta con Stable Image Core (Stability AI en Bedrock) y si no hay cuota, el MISMO motor Nova dibuja la imagen escribiendo código SVG. ¡Mismo motor, otra carrocería!
+    Dentro está el agente Strands: el motor es gpt-oss-120b en Bedrock; tiene 3 ruedas: clima real (API Open-Meteo), base de conocimiento de Pasto, y un ILUSTRADOR: otro modelo (Kimi K2.5) que dibuja escribiendo código SVG, y lo vemos aparecer forma por forma. ¡Un agente puede usar a otro modelo como herramienta, como una ambulancia que lleva una grúa!
     Todo lo que pasa se transmite en vivo al muro (pantalla grande).
   </aside>
 </section>

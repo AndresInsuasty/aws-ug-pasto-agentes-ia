@@ -17,8 +17,8 @@ Charla del **AWS User Group Pasto** 🇨🇴. Explica qué es un agente de IA co
 ```
 📱 celulares ──HTTPS──► CloudFront ──► Load Balancer ──► AWS Fargate (contenedor)
 📺 muro en vivo ◄──SSE─────────────────────────────────┘   │  FastAPI + Strands Agents
-                                                           ├─► 🧠 Amazon Bedrock · Nova Lite (motor)
-                                                           ├─► 🎨 Stable Image Core en Bedrock (imágenes)
+                                                           ├─► 🧠 Amazon Bedrock · gpt-oss-120b (motor)
+                                                           ├─► 🎨 Amazon Bedrock · Kimi K2.5 (ilustrador SVG en vivo)
                                                            ├─► 🌦️ Open-Meteo (clima real)
                                                            └─► 📚 base de conocimiento de Pasto
 ```
@@ -26,8 +26,9 @@ Charla del **AWS User Group Pasto** 🇨🇴. Explica qué es un agente de IA co
 ## Requisitos
 
 - Python 3.12+ y [uv](https://docs.astral.sh/uv/)
-- Una cuenta de AWS con acceso a Amazon Bedrock (modelos Amazon Nova)
-- AWS CLI configurado (`aws configure`) con un usuario IAM, **no root**
+- Una cuenta de AWS con Amazon Bedrock y una **API key de Bedrock** (consola de Bedrock → *API keys*)
+- Copia `.env.example` a `.env` y pon tu API key y la URL del endpoint compatible con OpenAI de tu región
+- AWS CLI configurado (`aws login` o `aws configure`), **no root**
 - Para desplegar: Node.js 18+ y Docker Desktop encendido
 
 ```bash
@@ -49,12 +50,16 @@ uv run --project .. uvicorn app.main:app --reload --port 8080
 # muro:  http://localhost:8080/muro
 ```
 
-Variables opcionales: `ACCESS_CODE` (PIN), `MODEL_ID`, `AWS_REGION`, `IMAGE_MODEL_ID`, `IMAGE_REGION`, `MAX_IMAGENES_TOTAL`.
+Lee `OPENAI_BASE_URL` y `OPENAI_API_KEY` del entorno (carga tu `.env`). Variables opcionales: `ACCESS_CODE` (PIN), `MODEL_ID` (motor), `ILUSTRADOR_ID` (modelo que dibuja), `MAX_IMAGENES_TOTAL`.
 
 ## Desplegar en AWS
 
 ```bash
 cd infra
+# 1) Guarda la API key de Bedrock en Secrets Manager (una sola vez)
+aws secretsmanager create-secret --region us-east-2 --name aws-ug-pasto/bedrock-api-key --secret-string "TU_API_KEY"
+
+# 2) Despliega
 npx aws-cdk@2.1148.1 bootstrap                     # solo la primera vez por cuenta/región
 npx aws-cdk@2.1148.1 deploy -c pin=TU_PIN -c email=tu@correo.com -c presupuesto=10
 ```
@@ -68,7 +73,7 @@ cd infra
 npx aws-cdk@2.1148.1 destroy
 ```
 
-Encendida, la demo cuesta aproximadamente **1–1.5 USD/día** (Fargate + Load Balancer), más el uso de Bedrock (Nova Lite cuesta centavos; cada imagen de Stable Image Core, unos 0.04 USD).
+Encendida, la demo cuesta aproximadamente **1–1.5 USD/día** (Fargate + Load Balancer), más el uso de Bedrock (gpt-oss y Kimi se cobran por token: centavos por conversación) y ~0.40 USD/mes del secreto.
 
 ## Presentar
 

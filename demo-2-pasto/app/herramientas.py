@@ -1,6 +1,5 @@
 """Las 'ruedas' del agente: herramientas que el motor (LLM) decide cuándo usar."""
 
-import base64
 import json
 import logging
 import os
@@ -10,59 +9,29 @@ import time
 import uuid
 import xml.etree.ElementTree as ET
 
-import boto3
 import httpx
-from botocore.config import Config
 from strands import tool
 
 from . import conocimiento
+from .motor import ILUSTRADOR_ID, MODEL_ID, cliente
 
 log = logging.getLogger("agente-galeras")
 
-IMAGE_MODEL_ID = os.getenv("IMAGE_MODEL_ID", "stability.stable-image-core-v1:1")
-IMAGE_REGION = os.getenv("IMAGE_REGION", os.getenv("AWS_REGION", "us-west-2"))
 MAX_IMAGENES_TOTAL = int(os.getenv("MAX_IMAGENES_TOTAL", "250"))
-
-MODEL_ID = os.getenv("MODEL_ID", "us.amazon.nova-lite-v1:0")
-AWS_REGION = os.getenv("AWS_REGION", "us-west-2")
-
-# Sin reintentos: si el modelo de imágenes no tiene cuota, caemos rápido al plan B (SVG)
-_bedrock_img = boto3.client("bedrock-runtime", region_name=IMAGE_REGION,
-                            config=Config(retries={"max_attempts": 1, "mode": "standard"}, read_timeout=45))
-_bedrock_txt = boto3.client("bedrock-runtime", region_name=AWS_REGION,
-                            config=Config(retries={"max_attempts": 3, "mode": "adaptive"}, read_timeout=90))
 _lock_contador = threading.Lock()
-_stable_pausado_hasta = 0.0  # si Stable Image falla, no lo reintentamos por unos minutos
 
 PROMPT_SVG = """You are a vector illustrator. Draw the requested scene as ONE self-contained SVG.
 Rules:
 - Output ONLY the SVG markup, starting with <svg and ending with </svg>. No markdown, no explanations.
 - Use viewBox="0 0 512 512" and xmlns="http://www.w3.org/2000/svg".
-- Flat, colorful, festive illustration style. Fill the whole canvas with a background.
+- Draw in painter's order: background and sky first, then landscape, then the main subject, then small details.
+- Flat, colorful, festive illustration style. Make the main subject big, centered and clearly recognizable.
 - Use only basic shapes: rect, circle, ellipse, polygon, path, line, g, linearGradient, radialGradient.
 - No <text>, no <script>, no <image>, no <foreignObject>, no external links, no event attributes.
-- Keep it under 70 elements."""
+- Keep it under 90 elements."""
 
-
-def _imagen_stable(prompt: str) -> tuple[bytes, str] | None:
-    global _stable_pausado_hasta
-    if not IMAGE_MODEL_ID or time.time() < _stable_pausado_hasta:
-        return None
-    try:
-        resp = _bedrock_img.invoke_model(
-            modelId=IMAGE_MODEL_ID,
-            body=json.dumps({
-                "prompt": prompt[:1500],
-                "negative_prompt": "text, letters, watermark, blurry, low quality",
-                "aspect_ratio": "1:1",
-                "output_format": "png",
-            }),
-        )
-        return base64.b64decode(json.loads(resp["body"].read())["images"][0]), "png"
-    except Exception as e:  # noqa: BLE001
-        log.warning("Stable Image no disponible (%s); uso SVG por 10 min", e.__class__.__name__)
-        _stable_pausado_hasta = time.time() + 600
-        return None
+_ETIQUETA = re.compile(r"<(/?)([a-zA-Z][\w:-]*)[^<>]*?(/?)>")
+_PROHIBIDOS = {"script", "foreignObject", "image", "iframe", "a", "use", "text", "style"}
 
 
 def _limpiar_svg(svg: str) -> str | None:
@@ -74,10 +43,9 @@ def _limpiar_svg(svg: str) -> str | None:
         raiz = ET.fromstring(m.group(0))
     except ET.ParseError:
         return None
-    prohibidos = {"script", "foreignObject", "image", "iframe", "a", "use", "text"}
     for padre in raiz.iter():
         for hijo in list(padre):
-            if hijo.tag.split("}")[-1] in prohibidos:
+            if hijo.tag.split("}")[-1] in _PROHIBIDOS:
                 padre.remove(hijo)
         for attr in list(padre.attrib):
             nombre = attr.split("}")[-1].lower()
@@ -87,20 +55,50 @@ def _limpiar_svg(svg: str) -> str | None:
     return ET.tostring(raiz, encoding="unicode")
 
 
-def _imagen_svg(prompt: str) -> tuple[bytes, str] | None:
-    try:
-        resp = _bedrock_txt.converse(
-            modelId=MODEL_ID,
-            system=[{"text": PROMPT_SVG}],
-            messages=[{"role": "user", "content": [{"text": prompt[:1500]}]}],
-            inferenceConfig={"maxTokens": 4000, "temperature": 0.7},
-        )
-        texto = "".join(b.get("text", "") for b in resp["output"]["message"]["content"])
-        svg = _limpiar_svg(texto)
-        return (svg.encode("utf-8"), "svg") if svg else None
-    except Exception as e:  # noqa: BLE001
-        log.warning("No se pudo dibujar SVG: %s", e)
+def _svg_parcial(texto: str) -> str | None:
+    """Convierte un SVG a medio escribir en uno válido: corta en la última etiqueta completa y cierra las abiertas."""
+    i = texto.find("<svg")
+    if i < 0:
         return None
+    s = texto[i:]
+    if "</svg>" in s:
+        return _limpiar_svg(s)
+    s = s[: s.rfind(">") + 1]
+    pila: list[str] = []
+    for m in _ETIQUETA.finditer(s):
+        cierre, nombre, auto = m.groups()
+        if cierre:
+            if pila and pila[-1] == nombre:
+                pila.pop()
+        elif not auto:
+            pila.append(nombre)
+    if not pila:
+        return None
+    return _limpiar_svg(s + "".join(f"</{n}>" for n in reversed(pila)))
+
+
+def dibujar_en_vivo(descripcion: str, al_avanzar, modelo: str = ILUSTRADOR_ID) -> str | None:
+    """Pide el SVG en streaming y va mostrando el boceto mientras el modelo lo escribe."""
+    stream = cliente.chat.completions.create(
+        model=modelo, stream=True, max_tokens=9000, temperature=0.7,
+        messages=[{"role": "system", "content": PROMPT_SVG}, {"role": "user", "content": descripcion[:1500]}],
+    )
+    texto, ultimo_envio, ultimo_bueno = "", 0.0, None
+    for chunk in stream:
+        if not chunk.choices:
+            continue
+        pedazo = chunk.choices[0].delta.content
+        if not pedazo:
+            continue
+        texto += pedazo
+        if time.time() - ultimo_envio > 0.35:
+            parcial = _svg_parcial(texto)
+            if parcial:
+                ultimo_bueno = parcial
+                al_avanzar(parcial)
+                ultimo_envio = time.time()
+    return _limpiar_svg(texto) or ultimo_bueno
+
 
 LUGARES = {
     "pasto": (1.2136, -77.2811),
@@ -116,6 +114,8 @@ CODIGOS_CLIMA = {
     61: "lluvia ligera", 63: "lluvia", 65: "lluvia fuerte", 80: "chubascos", 81: "chubascos fuertes",
     82: "aguacero", 95: "tormenta", 96: "tormenta con granizo", 99: "tormenta fuerte con granizo",
 }
+
+NOMBRE_ILUSTRADOR = {"moonshotai.kimi-k2.5": "Kimi K2.5", "zai.glm-4.7": "GLM-4.7", "openai.gpt-oss-120b": "gpt-oss-120b"}
 
 
 def crear_herramientas(sesion) -> list:
@@ -148,6 +148,7 @@ def crear_herramientas(sesion) -> list:
                     "timezone": "America/Bogota", "forecast_days": 3,
                 },
                 timeout=8,
+                verify=os.getenv("SSL_CERT_FILE") or True,  # en local respeta un bundle propio (p. ej. antivirus)
             )
             r.raise_for_status()
             d = r.json()
@@ -189,11 +190,11 @@ def crear_herramientas(sesion) -> list:
 
     @tool
     def generar_imagen(descripcion_en_ingles: str, titulo: str) -> str:
-        """Genera una imagen (Stable Image Core en Bedrock o, si no está disponible, un dibujo SVG) y la muestra al usuario y en el muro en vivo.
+        """Le pide a un modelo ilustrador que dibuje una imagen (SVG) y la muestra en vivo al usuario y en el muro.
         Úsala cuando pidan dibujar, diseñar o imaginar algo (p. ej. una carroza del carnaval).
 
         Args:
-            descripcion_en_ingles: prompt visual detallado EN INGLÉS (estilo, colores, composición).
+            descripcion_en_ingles: descripción visual detallada EN INGLÉS (sujeto principal, colores, fondo).
             titulo: título corto en español para mostrar con la imagen.
         """
         with _lock_contador:
@@ -201,23 +202,36 @@ def crear_herramientas(sesion) -> list:
                 return "Se alcanzó el límite de imágenes de la demo. Describe la idea con palabras."
             sesion.muro.imagenes_generadas += 1
         avisar("imagen", titulo[:60])
-        sesion.evento({"tipo": "generando", "titulo": titulo})
-        # 1) Intento con el modelo de imágenes; 2) si no hay cuota, el mismo motor dibuja en SVG
-        resultado, motor_usado = _imagen_stable(descripcion_en_ingles), "Stable Image Core"
-        if resultado is None:
-            resultado, motor_usado = _imagen_svg(descripcion_en_ingles), "SVG dibujado por el LLM"
-        if resultado is None:
+        id_ = uuid.uuid4().hex[:12]
+        sesion.evento({"tipo": "generando", "id": id_, "titulo": titulo})
+
+        def al_avanzar(svg: str) -> None:
+            ev = {"tipo": "boceto", "id": id_, "svg": svg, "titulo": titulo}
+            sesion.evento(ev)
+            sesion.muro.publicar({**ev, "apodo": sesion.apodo})
+
+        svg, ilustrador = None, ILUSTRADOR_ID
+        for modelo in dict.fromkeys([ILUSTRADOR_ID, MODEL_ID]):  # plan B: el mismo motor dibuja
+            try:
+                ilustrador = modelo
+                svg = dibujar_en_vivo(descripcion_en_ingles, al_avanzar, modelo)
+                if svg:
+                    break
+            except Exception as e:  # noqa: BLE001
+                log.warning("El ilustrador %s falló: %s", modelo, e)
+        if not svg:
             with _lock_contador:
                 sesion.muro.imagenes_generadas -= 1
+            sesion.evento({"tipo": "imagen_error", "id": id_})
+            sesion.muro.publicar({"tipo": "imagen_error", "id": id_})
             return "No se pudo generar la imagen en este momento. Describe la idea con palabras."
 
-        datos, ext = resultado
-        id_ = uuid.uuid4().hex[:12]
-        sesion.muro.guardar_imagen(id_, datos, ext)
-        url = f"/img/{id_}.{ext}"
-        sesion.evento({"tipo": "imagen", "url": url, "titulo": titulo, "motor": motor_usado})
-        sesion.muro.publicar({"tipo": "imagen", "url": url, "titulo": titulo, "apodo": sesion.apodo, "motor": motor_usado})
+        nombre = NOMBRE_ILUSTRADOR.get(ilustrador, ilustrador)
+        sesion.muro.guardar_imagen(id_, svg.encode("utf-8"), "svg")
+        ev = {"tipo": "imagen", "id": id_, "url": f"/img/{id_}.svg", "titulo": titulo, "motor": f"dibujado por {nombre}"}
+        sesion.evento(ev)
+        sesion.muro.publicar({**ev, "apodo": sesion.apodo})
         sesion.muro.publicar(sesion.muro.stats())
-        return f"Imagen generada ({motor_usado}) y ya visible para el usuario con el título '{titulo}'. No incluyas enlaces."
+        return f"Imagen dibujada por {nombre} y ya visible para el usuario con el título '{titulo}'. No incluyas enlaces ni código."
 
     return [clima_actual, buscar_info_pasto, generar_imagen]

@@ -27,7 +27,7 @@ class Muro:
 
     def publicar(self, evento: dict) -> None:
         evento = {**evento, "t": time.time()}
-        if evento["tipo"] != "stats":
+        if evento["tipo"] not in ("stats", "boceto"):  # los bocetos son efímeros
             self.historial.append(evento)
         for q in list(self._suscriptores):
             try:
