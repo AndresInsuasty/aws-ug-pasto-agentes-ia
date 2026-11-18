@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Galeritas · Guía de Pasto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1020; --panel:#151d2e; --panel2:#1c2740; --text:#eef2ff; --muted:#93a0bd;
+    --cyan:#41b3ff; --green:#00e582; --pink:#ff57e9; --purple:#ac5bff; --orange:#ff9900;
+    --grad:linear-gradient(120deg,#6a2bff 0%,#2f7bff 45%,#00b4ff 100%);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+  body{display:flex;flex-direction:column;height:100dvh}
+  header{padding:14px 16px;background:var(--grad);display:flex;align-items:center;gap:12px}
+  header .logo{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:22px}
+  header h1{font:700 18px/1.1 "Space Grotesk",sans-serif;margin:0}
+  header small{opacity:.85;font-size:12px}
+  main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:88%;padding:11px 14px;border-radius:16px;line-height:1.45;font-size:15px;white-space:normal;word-wrap:break-word}
+  .yo{align-self:flex-end;background:var(--cyan);color:#04121f;border-bottom-right-radius:4px}
+  .bot{align-self:flex-start;background:var(--panel);border-bottom-left-radius:4px}
+  .bot ul{margin:6px 0;padding-left:18px}
+  .tools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .tool{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--panel2);color:var(--green);border:1px solid #00e58255}
+  .tool.imagen{color:var(--pink);border-color:#ff57e955}
+  .tool.clima{color:var(--cyan);border-color:#41b3ff55}
+  .img{margin-top:8px;border-radius:12px;overflow:hidden;background:var(--panel2)}
+  .img img{display:block;width:100%;height:auto}
+  .img figcaption{font-size:12px;padding:6px 10px;color:var(--muted)}
+  .cargando{display:flex;align-items:center;justify-content:center;aspect-ratio:1;color:var(--muted);font-size:13px;gap:8px}
+  .dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin:0 2px;animation:b 1s infinite}
+  .dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+  @keyframes b{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none}
+  .chip{flex:0 0 auto;font-size:13px;padding:8px 12px;border-radius:999px;background:var(--panel);border:1px solid #ffffff1f;color:var(--text);cursor:pointer}
+  form.input{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:var(--panel)}
+  input,button{font:inherit}
+  .input input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid #ffffff22;background:var(--bg);color:var(--text);font-size:16px}
+  .input button{padding:0 16px;border:0;border-radius:12px;background:var(--grad);color:#fff;font-weight:600}
+  button:disabled{opacity:.5}
+  #entrar{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px;gap:14px;z-index:5}
+  #entrar h2{font:700 30px/1.1 "Space Grotesk",sans-serif;margin:0}
+  #entrar h2 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #entrar p{color:var(--muted);margin:0 0 8px}
+  #entrar input{padding:14px;border-radius:12px;border:1px solid #ffffff22;background:var(--panel);color:var(--text);font-size:17px}
+  #entrar button{padding:14px;border:0;border-radius:12px;background:var(--grad);color:#fff;font-weight:700;font-size:17px}
+  .err{color:#ff7a7a;font-size:14px;min-height:1em}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<section id="entrar">
+  <div style="font-size:54px">🌋</div>
+  <h2>Hola, soy <span>Galeritas</span></h2>
+  <p>Tu guía de Pasto con IA. Un agente hecho con Strands + Amazon Bedrock, corriendo en AWS Fargate.</p>
+  <input id="apodo" maxlength="24" placeholder="Tu nombre o apodo" autocomplete="nickname">
+  <input id="pin" maxlength="12" placeholder="Código de acceso" class="hidden" autocapitalize="characters">
+  <button id="btnEntrar">Entrar 🚗</button>
+  <div class="err" id="errEntrar"></div>
+</section>
+
+<header>
+  <div class="logo">🌋</div>
+  <div><h1>Galeritas</h1><small>Agente guía de Pasto · AWS UG Pasto</small></div>
+</header>
+<main id="chat">
+  <div class="msg bot">¡Ananay, bienvenid@! 👋 Pregúntame sobre Pasto, el clima de hoy, o pídeme que diseñe tu <b>carroza del Carnaval de Negros y Blancos</b>.</div>
+</main>
+<div class="chips" id="chips"></div>
+<form class="input" id="form">
+  <input id="texto" maxlength="400" placeholder="Escribe tu pregunta…" autocomplete="off">
+  <button id="btnEnviar">Enviar</button>
+</form>
+
+<script>
+const SUGERENCIAS = [
+  "🎨 Diseña mi carroza del carnaval con un cuy astronauta",
+  "🧥 ¿Qué ropa llevo hoy en Pasto?",
+  "🍲 ¿Qué debo comer en Pasto?",
+  "🚤 Planea mi día en la Laguna de la Cocha con el clima de allá",
+  "🎭 ¿Qué pasa el 5 y 6 de enero?",
+  "🌋 Imagina el Galeras al atardecer en estilo acuarela",
+];
+const $ = (s) => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+let sesion = null; let ocupado = false;
+try { sesion = JSON.parse(sessionStorage.getItem("galeritas") || "null"); } catch {}
+
+fetch("/api/config").then(r => r.json()).then(c => {
+  if (c.pin_requerido) { $("#pin").classList.remove("hidden"); $("#pin").value = params.get("pin") || ""; }
+});
+if (sesion) $("#entrar").classList.add("hidden");
+
+$("#btnEntrar").onclick = async () => {
+  $("#errEntrar").textContent = "";
+  const apodo = $("#apodo").value.trim();
+  if (!apodo) { $("#errEntrar").textContent = "Escribe tu nombre o apodo"; return; }
+  const r = await fetch("/api/entrar", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apodo, pin: $("#pin").value }) });
+  if (!r.ok) { $("#errEntrar").textContent = (await r.json()).detail || "No se pudo entrar"; return; }
+  sesion = await r.json();
+  try { sessionStorage.setItem("galeritas", JSON.stringify(sesion)); } catch {}
+  $("#entrar").classList.add("hidden");
+};
+
+SUGERENCIAS.forEach(s => {
+  const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.textContent = s;
+  b.onclick = () => enviar(s.replace(/^\S+\s/, "")); $("#chips").appendChild(b);
+});
+
+function esc(t){ return t.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function limpiar(t){
+  return t.replace(/<thinking>[\s\S]*?<\/thinking>/g, "").replace(/<thinking>[\s\S]*$/, "").replace(/<\/?response>/g, "").trim();
+}
+function md(t){
+  const lineas = esc(limpiar(t)).split("\n"); let html = "", lista = false;
+  for (let l of lineas) {
+    l = l.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|\s)\*(.+?)\*/g, "$1<i>$2</i>");
+    if (/^\s*[-•*]\s+/.test(l)) { if (!lista) { html += "<ul>"; lista = true; } html += "<li>" + l.replace(/^\s*[-•*]\s+/, "") + "</li>"; }
+    else { if (lista) { html += "</ul>"; lista = false; } html += l.replace(/^#+\s*/, "") + "<br>"; }
+  }
+  return (html + (lista ? "</ul>" : "")).replace(/(<br>)+$/, "");
+}
+function burbuja(cls, html){ const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; $("#chat").appendChild(d); bajar(); return d; }
+function bajar(){ $("#chat").scrollTop = $("#chat").scrollHeight; }
+const ICONOS = { clima: "🌦️ clima real", conocimiento: "📚 base de conocimiento", imagen: "🎨 Nova Canvas" };
+
+async function enviar(texto){
+  texto = (texto || "").trim(); if (!texto || ocupado || !sesion) return;
+  ocupado = true; $("#btnEnviar").disabled = true; $("#texto").value = "";
+  burbuja("yo", esc(texto));
+  const b = burbuja("bot", "");
+  const tools = document.createElement("div"); tools.className = "tools";
+  const cuerpo = document.createElement("div"); cuerpo.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
+  const medios = document.createElement("div");
+  b.append(tools, cuerpo, medios);
+  let acumulado = ""; let cargando = null;
+  try {
+    const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sesion: sesion.sesion, mensaje: texto }) });
+    if (r.status === 401) { sessionStorage.removeItem("galeritas"); sesion = null; $("#entrar").classList.remove("hidden"); throw new Error("Tu sesión expiró, vuelve a entrar"); }
+    if (!r.ok) throw new Error((await r.json()).detail || "Error");
+    const lector = r.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const { value, done } = await lector.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const bloque = buf.slice(0, i); buf = buf.slice(i + 2);
+        const linea = bloque.split("\n").find(l => l.startsWith("data: ")); if (!linea) continue;
+        const ev = JSON.parse(linea.slice(6));
+        if (ev.tipo === "texto") { acumulado += ev.delta; const h = md(acumulado); if (h) cuerpo.innerHTML = h; }
+        else if (ev.tipo === "herramienta") { const t = document.createElement("span"); t.className = "tool " + ev.nombre; t.textContent = "🔧 " + (ICONOS[ev.nombre] || ev.nombre); tools.appendChild(t); }
+        else if (ev.tipo === "generando") { cargando = document.createElement("div"); cargando.className = "img"; cargando.innerHTML = '<div class="cargando">🎨 Pintando con Nova Canvas <span class="dots"><span></span><span></span><span></span></span></div>'; medios.appendChild(cargando); }
+        else if (ev.tipo === "imagen") { const f = document.createElement("figure"); f.className = "img"; f.style.margin = "8px 0 0"; f.innerHTML = `<img src="${ev.url}" alt=""><figcaption>${esc(ev.titulo)} · también está en el muro 📺</figcaption>`; if (cargando) { cargando.replaceWith(f); cargando = null; } else medios.appendChild(f); f.querySelector("img").onload = bajar; }
+        else if (ev.tipo === "error") { cuerpo.innerHTML = "😵 Ups, el motor tosió: " + esc(ev.mensaje); }
+        bajar();
+      }
+    }
+    if (cargando) cargando.remove();
+    if (cuerpo.querySelector(".dots")) cuerpo.textContent = medios.children.length ? "" : "…";
+  } catch (e) { cuerpo.textContent = "😵 " + e.message; }
+  ocupado = false; $("#btnEnviar").disabled = false;
+}
+$("#form").onsubmit = (e) => { e.preventDefault(); enviar($("#texto").value); };
+</script>
+</body>
+</html>

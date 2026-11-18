@@ -1,0 +1,29 @@
+# Secretos
+.env
+.env.*
+!.env.example
+*.pem
+
+# Material privado / de referencia (plantillas, PDFs, acuerdos)
+docs/
+
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.venv
+.pytest_cache/
+
+# CDK / Node
+infra/cdk.out/
+node_modules/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

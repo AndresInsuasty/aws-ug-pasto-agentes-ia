@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentes de IA en AWS</title>
+<meta name="description" content="Agentes de IA en AWS: mismo motor, distintos autos — AWS User Group Pasto">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reset.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css">
+<style>
+  :root{
+    --bg:#0b1020; --navy:#151d25; --panel:#151d2e; --panel2:#1c2740; --text:#eef2ff; --muted:#93a0bd;
+    --cyan:#41b3ff; --green:#00e582; --pink:#ff57e9; --purple:#ac5bff; --orange:#ff9900;
+    --grad:linear-gradient(120deg,#6a2bff 0%,#2f7bff 45%,#00b4ff 100%);
+    --r-background-color:var(--bg); --r-main-color:var(--text); --r-heading-color:var(--text);
+    --r-main-font:Inter,system-ui,sans-serif; --r-heading-font:"Space Grotesk",Inter,sans-serif;
+    --r-code-font:"JetBrains Mono",monospace; --r-link-color:var(--cyan);
+  }
+  html,body,.reveal-viewport{background:var(--bg);background-color:var(--bg)}
+  .reveal{font-family:var(--r-main-font);color:var(--text);font-size:30px}
+  .reveal .slides{text-align:center}
+  .reveal h1,.reveal h2,.reveal h3{font-family:var(--r-heading-font);font-weight:700;letter-spacing:-.02em;text-transform:none;margin:0 0 .4em;line-height:1.05;color:var(--text)}
+  .reveal h1{font-size:2.6em} .reveal h2{font-size:1.75em} .reveal h3{font-size:1.1em}
+  .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .muted{color:var(--muted)} .small{font-size:.7em}
+  .kicker{font:600 .55em Inter;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin-bottom:.8em;display:block}
+  .row{display:flex;gap:28px;justify-content:center;align-items:stretch}
+  .card{background:var(--panel);border:1px solid #ffffff14;border-radius:22px;padding:24px 22px;flex:1;min-width:0}
+  .card .emo{font-size:2.6em;line-height:1.1;display:block;margin-bottom:.15em}
+  .card b{display:block;font-family:var(--r-heading-font);font-size:1em}
+  .card span.s{color:var(--muted);font-size:.65em;display:block;margin-top:.2em}
+  .pill{display:inline-block;padding:.25em .8em;border-radius:999px;background:var(--panel2);border:1px solid #ffffff1f;font-size:.62em;margin:.2em}
+  .big-emoji{font-size:5em;line-height:1}
+  /* fondo de secciones */
+  .divider h1{font-size:3.2em}
+  .divider .num{font:700 7em/1 "Space Grotesk";opacity:.18;display:block;margin-bottom:-.35em}
+  /* fragment personalizados */
+  .reveal .fragment.pop{transform:scale(.6);opacity:0;transition:all .45s cubic-bezier(.2,1.6,.4,1)}
+  .reveal .fragment.pop.visible{transform:scale(1);opacity:1}
+  .reveal .fragment.highlight-current-glow.current-fragment{filter:drop-shadow(0 0 14px var(--cyan))}
+  /* portada */
+  .portada .autor{margin-top:1.2em;font-size:.75em}
+  .portada .autor b{font-family:var(--r-heading-font);font-size:1.2em}
+  .road{position:relative;height:120px;margin:10px auto 0;width:900px;overflow:hidden}
+  .road::after{content:"";position:absolute;left:0;right:0;bottom:16px;height:4px;background:repeating-linear-gradient(90deg,#ffffff40 0 40px,transparent 40px 80px);animation:road 1s linear infinite}
+  @keyframes road{to{background-position:-80px 0}}
+  .road .car{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:84px;animation:bump .5s ease-in-out infinite alternate}
+  @keyframes bump{to{transform:translate(-50%,-3px)}}
+  /* LLM barras */
+  .frase{font:600 1.35em "Space Grotesk";margin:.4em 0 .8em}
+  .frase .hueco{display:inline-block;min-width:4.5em;border-bottom:4px solid var(--cyan);color:var(--green)}
+  .barras{width:760px;margin:0 auto;text-align:left}
+  .barra{display:flex;align-items:center;gap:16px;margin:12px 0;cursor:pointer}
+  .barra .w{width:150px;text-align:right;font-weight:600}
+  .barra .t{flex:1;height:30px;background:var(--panel2);border-radius:8px;overflow:hidden}
+  .barra .f{height:100%;width:0;background:var(--grad);border-radius:8px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .barra .p{width:70px;font-family:var(--r-code-font);color:var(--muted)}
+  .barra:hover .w{color:var(--cyan)}
+  /* motor solo */
+  .limits{display:flex;gap:22px;justify-content:center;margin-top:24px}
+  .limits div{background:var(--panel);border-radius:16px;padding:14px 22px;font-size:.7em}
+  .limits div::before{content:"✕ ";color:#ff6b7a;font-weight:700}
+  /* auto */
+  svg text{font-family:Inter,sans-serif}
+  .callout rect{fill:var(--panel2);stroke:#ffffff26}
+  .callout line,.callout path{stroke:var(--cyan);stroke-width:2.5;stroke-dasharray:6 6;fill:none}
+  /* vehículos */
+  .vehiculos .card{padding:18px 10px}
+  .vehiculos .card .emo{font-size:2.4em}
+  .mini-motor{display:inline-block;font-size:.55em;padding:.2em .6em;border-radius:999px;background:#ff99001f;color:var(--orange);margin-top:.4em}
+  .mini-cerebro{display:inline-block;font-size:.55em;padding:.2em .6em;border-radius:999px;background:#ac5bff26;color:#c99bff;margin-top:.4em}
+  .igual{font:700 .9em "Space Grotesk";color:var(--muted);margin:16px 0}
+  /* ciclo */
+  .ciclo-wrap{display:flex;gap:40px;align-items:center;justify-content:center}
+  .paso{background:var(--panel);border-radius:14px;padding:10px 16px;margin:10px 0;text-align:left;font-size:.62em;border-left:4px solid var(--cyan)}
+  .paso.t{border-color:var(--orange)} .paso.o{border-color:var(--green)} .paso.r{border-color:var(--pink)} .paso.u{border-color:var(--muted)}
+  .paso code{font-family:var(--r-code-font);color:var(--orange)}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  .orbita{transform-origin:200px 200px;animation:girar 6s linear infinite}
+  /* bedrock */
+  .modelos{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:980px;margin:20px auto}
+  .modelos .pill{font-size:.75em;padding:.45em 1em}
+  .modelos .pill.nova{border-color:var(--orange);color:var(--orange)}
+  /* código */
+  .reveal pre{position:relative;width:1000px;margin:0 auto;box-shadow:none;font-size:.48em;text-align:left}
+  .reveal pre code{text-align:left;max-height:600px;padding:18px 24px;background:#0f1626;border:1px solid #ffffff14;border-radius:16px;line-height:1.35}
+  .reveal .hljs-ln-numbers{color:#ffffff40}
+  .terminal{background:#0f1626;border:1px solid #ffffff1f;border-radius:16px;text-align:left;padding:22px 28px;font-family:var(--r-code-font);font-size:.62em;width:820px;margin:0 auto}
+  .terminal .p{color:var(--green)}
+  /* arquitectura */
+  .flujo{stroke-dasharray:8 8;animation:fluir 1s linear infinite}
+  @keyframes fluir{to{stroke-dashoffset:-16}}
+  .nodo rect{fill:var(--panel);stroke:#ffffff22;stroke-width:1.5}
+  .nodo text{fill:var(--text)}
+  .nodo .sub{fill:var(--muted);font-size:14px}
+  /* QR */
+  .qrbox{background:#fff;padding:18px;border-radius:24px;display:inline-block}
+  .qrbox img,.qrbox canvas{display:block}
+  .pin{font:700 1.6em "Space Grotesk";letter-spacing:.15em;color:var(--green)}
+  .url{font-family:var(--r-code-font);font-size:.5em;color:var(--muted);word-break:break-all}
+  .aviso{color:var(--orange);font-size:.6em}
+  /* config */
+  #cfg{position:fixed;inset:0;background:#000a;display:none;place-items:center;z-index:50;font-family:Inter}
+  #cfg.on{display:grid}
+  #cfg form{background:var(--panel);padding:24px;border-radius:16px;width:min(520px,92vw);display:grid;gap:10px;color:var(--text)}
+  #cfg input{padding:10px;border-radius:8px;border:1px solid #ffffff2a;background:var(--bg);color:var(--text);font-size:15px}
+  #cfg button{padding:10px;border:0;border-radius:8px;background:var(--grad);color:#fff;font-weight:600;cursor:pointer}
+  .reveal .controls{color:var(--cyan)} .reveal .progress{color:var(--cyan);height:4px}
+  .logo-ug{position:fixed;left:22px;bottom:16px;font:600 13px Inter;color:var(--muted);z-index:10;letter-spacing:.05em}
+  .logo-ug b{color:var(--orange)}
+</style>
+</head>
+<body>
+<div class="logo-ug"><b>aws</b> User Group · Pasto</div>
+
+<!-- Símbolos SVG reutilizables -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="gr" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#6a2bff"/><stop offset=".5" stop-color="#2f7bff"/><stop offset="1" stop-color="#00b4ff"/></linearGradient>
+    <linearGradient id="gm" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffb84d"/><stop offset="1" stop-color="#ff7a00"/></linearGradient>
+    <marker id="flecha" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#41b3ff"/></marker>
+    <!-- Motor: bloque con pistones y un 'cerebro' -->
+    <symbol id="motor" viewBox="0 0 220 170">
+      <rect x="20" y="50" width="180" height="100" rx="14" fill="url(#gm)"/>
+      <rect x="40" y="18" width="30" height="40" rx="6" fill="#ffcf8a"/><rect x="95" y="10" width="30" height="48" rx="6" fill="#ffcf8a"/><rect x="150" y="18" width="30" height="40" rx="6" fill="#ffcf8a"/>
+      <rect x="0" y="80" width="24" height="40" rx="6" fill="#d96a00"/><rect x="196" y="80" width="24" height="40" rx="6" fill="#d96a00"/>
+      <text x="110" y="118" text-anchor="middle" font-size="46">🧠</text>
+    </symbol>
+    <!-- Auto de perfil -->
+    <symbol id="auto" viewBox="0 0 800 330">
+      <path d="M70 250 L70 205 Q72 178 110 172 L250 160 L335 100 Q350 88 375 88 L520 88 Q548 88 565 104 L625 160 L705 172 Q738 178 740 205 L740 250 Z" fill="#1f2c48" stroke="#41b3ff" stroke-width="3"/>
+      <path d="M355 108 L520 108 Q538 108 548 120 L590 160 L290 160 Z" fill="#0b1020" stroke="#41b3ff55" stroke-width="2"/>
+      <line x1="445" y1="108" x2="445" y2="160" stroke="#41b3ff55" stroke-width="3"/>
+      <circle cx="190" cy="252" r="46" fill="#0b1020" stroke="#93a0bd" stroke-width="10"/><circle cx="190" cy="252" r="14" fill="#93a0bd"/>
+      <circle cx="620" cy="252" r="46" fill="#0b1020" stroke="#93a0bd" stroke-width="10"/><circle cx="620" cy="252" r="14" fill="#93a0bd"/>
+      <rect x="722" y="190" width="18" height="16" rx="4" fill="#ffd166"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="reveal"><div class="slides">
+
+<!-- 1 · PORTADA -->
+<section class="portada" data-background-gradient="radial-gradient(circle at 20% 10%, #3a1f8a 0%, #0b1020 55%)">
+  <span class="kicker">AWS User Group Pasto</span>
+  <h1>Agentes de IA<br><span class="g">en AWS</span></h1>
+  <h3 class="muted" style="font-weight:500">Mismo motor, distintos autos</h3>
+  <div class="road"><div class="car">🚗</div></div>
+  <div class="autor"><b id="nombre">Andrés Insuasty</b><br><span class="muted">San Juan de Pasto</span></div>
+  <aside class="notes">
+    Bienvenida. Saludo, agradecer al equipo organizador (Iván, Santiago, Carlos, William) y al espacio.
+    Hoy: qué es un agente de IA, armamos uno sencillo en vivo, y al final TODOS van a usar uno desplegado en AWS desde su celular.
+    Pidan que tengan el celular a la mano (lo usaremos al final).
+  </aside>
+</section>
+
+<!-- 2 · QUIÉN SOY -->
+<section>
+  <div class="row" style="align-items:center;gap:60px">
+    <div style="width:240px;height:240px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font:700 90px 'Space Grotesk';flex:none">AI</div>
+    <div style="text-align:left">
+      <h2>Andrés Insuasty</h2>
+      <div><span class="pill">☁️ AWS User Group Pasto</span></div>
+      <div><span class="pill">📊 Datos Dinámicos</span><span class="pill">🧮 Andrés Matemáticas</span></div>
+      <div><span class="pill">🤖 IA · Datos · Nube</span></div>
+    </div>
+  </div>
+  <aside class="notes">
+    Presentación personal (30 seg). Quién eres, a qué te dedicas, tus canales (Datos Dinámicos / Andrés Matemáticas).
+    TIP: reemplaza el círculo "AI" por tu foto (img dentro del div).
+  </aside>
+</section>
+
+<!-- 3 · PREGUNTA AL PÚBLICO -->
+<section>
+  <div class="big-emoji">✋</div>
+  <h2>¿Quién usó <span class="g">ChatGPT, Claude o Gemini</span><br>esta semana?</h2>
+  <p class="fragment muted">¿Y quién sabe <b style="color:var(--text)">cómo funciona</b> por dentro? 🤔</p>
+  <aside class="notes">
+    Romper el hielo. Que levanten la mano. Casi todos la levantan.
+    Luego: "¿y quién sabe cómo funciona por dentro?" → pocas manos. "Hoy vamos a abrir el capó".
+  </aside>
+</section>
+
+<!-- 4 · DIVISOR: EL MOTOR -->
+<section class="divider" data-background-gradient="linear-gradient(120deg,#6a2bff 0%,#2f7bff 45%,#00b4ff 100%)">
+  <span class="num">01</span>
+  <h1>El motor</h1>
+  <h3 style="font-weight:500;opacity:.85">¿Qué es un LLM?</h3>
+  <aside class="notes">Primera parte: entender el motor = el modelo de lenguaje (LLM).</aside>
+</section>
+
+<!-- 5 · LLM = PREDECIR LA SIGUIENTE PALABRA (interactiva) -->
+<section id="llm">
+  <span class="kicker">LLM · Large Language Model</span>
+  <h2>Un autocompletar <span class="g">gigante</span></h2>
+  <div class="frase">"El carnaval de Pasto es de Negros y <span class="hueco" id="hueco">&nbsp;?&nbsp;</span>"</div>
+  <div class="barras" id="barras">
+    <div class="barra" data-p="94" data-w="Blancos"><span class="w">Blancos</span><div class="t"><div class="f"></div></div><span class="p">94%</span></div>
+    <div class="barra" data-p="3" data-w="Rojos"><span class="w">Rojos</span><div class="t"><div class="f"></div></div><span class="p">3%</span></div>
+    <div class="barra" data-p="2" data-w="Cuyes 🐹"><span class="w">Cuyes</span><div class="t"><div class="f"></div></div><span class="p">2%</span></div>
+    <div class="barra" data-p="1" data-w="Azules"><span class="w">Azules</span><div class="t"><div class="f"></div></div><span class="p">1%</span></div>
+  </div>
+  <p class="fragment muted small" style="margin-top:22px">📚 Leyó casi todo internet → aprendió patrones del lenguaje</p>
+  <aside class="notes">
+    Pregunta al público: ¿qué palabra sigue? → todos dicen "Blancos".
+    Eso hace un LLM: calcula probabilidades de la siguiente palabra (token), una y otra vez.
+    Haz CLIC en las barras para completar la frase (la de "Cuyes" da risa).
+    Entrenado con muchísimo texto → aprendió gramática, datos, razonamiento aparente.
+  </aside>
+</section>
+
+<!-- 6 · EL MOTOR SOLO NO SE MUEVE -->
+<section>
+  <svg viewBox="0 0 220 170" width="300" height="232"><use href="#motor"/></svg>
+  <h2>Un motor potente… <span class="g">pero quieto</span></h2>
+  <div class="limits">
+    <div class="fragment">No sabe qué hora es</div>
+    <div class="fragment">No ve el clima de hoy</div>
+    <div class="fragment">No puede actuar</div>
+  </div>
+  <aside class="notes">
+    El LLM es como un MOTOR: muchísima potencia, pero un motor solo encima de una mesa no te lleva a ningún lado.
+    Limitaciones: su conocimiento se congela en la fecha de entrenamiento, no sabe la hora, no consulta el clima,
+    no puede enviar un correo ni guardar un archivo. Solo genera texto.
+    Pregunta: ¿qué le falta para moverse? → un carro.
+  </aside>
+</section>
+
+<!-- 7 · DIVISOR: EL AUTO -->
+<section class="divider" data-background-gradient="linear-gradient(120deg,#ff57e9 0%,#ac5bff 50%,#2f7bff 100%)">
+  <span class="num">02</span>
+  <h1>El auto</h1>
+  <h3 style="font-weight:500;opacity:.85">¿Qué es un agente de IA?</h3>
+  <aside class="notes">Segunda parte: de motor a auto = de LLM a agente.</aside>
+</section>
+
+<!-- 8 · AGENTE = AUTO (anatomía) -->
+<section>
+  <h2 style="margin-bottom:.1em">Agente = <span style="color:var(--orange)">motor</span> + <span class="g">auto</span></h2>
+  <svg viewBox="0 0 1000 470" width="1050" height="494">
+    <use href="#auto" x="100" y="110" width="800" height="330"/>
+    <!-- motor en el capó -->
+    <g class="fragment" data-fragment-index="1">
+      <use href="#motor" x="715" y="250" width="90" height="70"/>
+      <g class="callout"><path d="M770 255 L840 110"/><rect x="760" y="40" width="230" height="74" rx="14"/>
+      <text x="875" y="72" text-anchor="middle" font-size="24" font-weight="700" fill="#ff9900">🧠 Motor</text><text x="875" y="100" text-anchor="middle" font-size="18" fill="#93a0bd">el LLM (Nova, Claude…)</text></g>
+    </g>
+    <!-- volante -->
+    <g class="fragment" data-fragment-index="2">
+      <circle cx="560" cy="245" r="20" fill="none" stroke="#00e582" stroke-width="6"/>
+      <g class="callout"><path d="M560 225 L540 120"/><rect x="420" y="40" width="250" height="74" rx="14"/>
+      <text x="545" y="72" text-anchor="middle" font-size="24" font-weight="700" fill="#00e582">🎯 Volante</text><text x="545" y="100" text-anchor="middle" font-size="18" fill="#93a0bd">instrucciones (prompt)</text></g>
+    </g>
+    <!-- baúl / memoria -->
+    <g class="fragment" data-fragment-index="3">
+      <rect x="176" y="282" width="52" height="26" rx="6" fill="#ac5bff55" stroke="#ac5bff" stroke-width="3"/>
+      <g class="callout"><path d="M200 282 L180 120"/><rect x="40" y="40" width="250" height="74" rx="14"/>
+      <text x="165" y="72" text-anchor="middle" font-size="24" font-weight="700" fill="#c99bff">🧳 Baúl</text><text x="165" y="100" text-anchor="middle" font-size="18" fill="#93a0bd">memoria / contexto</text></g>
+    </g>
+    <!-- ruedas -->
+    <g class="fragment" data-fragment-index="4">
+      <circle cx="290" cy="362" r="56" fill="none" stroke="#41b3ff" stroke-width="5" class="flujo"/>
+      <circle cx="720" cy="362" r="56" fill="none" stroke="#41b3ff" stroke-width="5" class="flujo"/>
+      <rect x="380" y="400" width="250" height="64" rx="14" fill="#1c2740" stroke="#ffffff26"/>
+      <text x="505" y="430" text-anchor="middle" font-size="24" font-weight="700" fill="#41b3ff">🔧 Ruedas</text><text x="505" y="454" text-anchor="middle" font-size="18" fill="#93a0bd">herramientas (tools)</text>
+    </g>
+  </svg>
+  <aside class="notes">
+    La metáfora central. Ve mostrando pieza por pieza (flecha derecha):
+    1) MOTOR = el LLM. Da la "inteligencia" / potencia.
+    2) VOLANTE = las instrucciones (system prompt): hacia dónde y cómo se comporta. "Eres un guía pastuso amable".
+    3) BAÚL = la memoria: lo que hablamos antes, documentos, contexto.
+    4) RUEDAS = las herramientas: funciones que el agente PUEDE USAR para tocar el mundo: consultar clima, buscar en una base de datos, enviar un correo, generar una imagen.
+    Frase clave: "Un agente es un LLM que puede DECIDIR qué herramientas usar para cumplir un objetivo".
+  </aside>
+</section>
+
+<!-- 9 · MISMO MOTOR, DISTINTOS AUTOS -->
+<section class="vehiculos">
+  <h2>Mismo motor, <span class="g">distintos autos</span></h2>
+  <div class="row">
+    <div class="card fragment pop" data-fragment-index="1"><span class="emo">🚚</span><b>Carga</b><span class="mini-motor">⚙️ mismo motor</span></div>
+    <div class="card fragment pop" data-fragment-index="1"><span class="emo">🏎️</span><b>Carreras</b><span class="mini-motor">⚙️ mismo motor</span></div>
+    <div class="card fragment pop" data-fragment-index="1"><span class="emo">🚑</span><b>Rescate</b><span class="mini-motor">⚙️ mismo motor</span></div>
+    <div class="card fragment pop" data-fragment-index="1"><span class="emo">🚜</span><b>Campo</b><span class="mini-motor">⚙️ mismo motor</span></div>
+  </div>
+  <div class="igual fragment" data-fragment-index="2">⬇ lo mismo pasa con la IA ⬇</div>
+  <div class="row">
+    <div class="card fragment pop" data-fragment-index="3"><span class="emo">💻</span><b>Código</b><span class="mini-cerebro">🧠 mismo LLM</span></div>
+    <div class="card fragment pop" data-fragment-index="3"><span class="emo">🎬</span><b>Video</b><span class="mini-cerebro">🧠 mismo LLM</span></div>
+    <div class="card fragment pop" data-fragment-index="3"><span class="emo">🎨</span><b>Imágenes</b><span class="mini-cerebro">🧠 mismo LLM</span></div>
+    <div class="card fragment pop" data-fragment-index="3"><span class="emo">🎵</span><b>Música</b><span class="mini-cerebro">🧠 mismo LLM</span></div>
+    <div class="card fragment pop" data-fragment-index="4" style="border-color:var(--green)"><span class="emo">✨</span><b>¡El tuyo!</b><span class="mini-cerebro">🧠 mismo LLM</span></div>
+  </div>
+  <aside class="notes">
+    Con el MISMO motor puedes armar un camión de carga, uno de carreras, una ambulancia o un tractor.
+    Lo que cambia es la carrocería, las ruedas, el volante: para qué está hecho.
+    Igual en IA: con el mismo LLM se arman agentes de código, de video, de imágenes, de música…
+    Y lo más bonito: podemos armar el NUESTRO, personalizado → eso es lo que vamos a hacer hoy.
+  </aside>
+</section>
+
+<!-- 10 · EL CICLO DEL AGENTE -->
+<section>
+  <h2>¿Cómo <span class="g">maneja</span> un agente?</h2>
+  <div class="ciclo-wrap">
+    <svg viewBox="0 0 400 400" width="400" height="400">
+      <circle cx="200" cy="200" r="140" fill="none" stroke="#ffffff1a" stroke-width="22"/>
+      <g font-size="22" font-weight="700" text-anchor="middle" fill="#eef2ff">
+        <circle cx="200" cy="60" r="52" fill="#151d2e" stroke="#41b3ff" stroke-width="3"/><text x="200" y="56" font-size="30">🧠</text><text x="200" y="86" font-size="17">Pensar</text>
+        <circle cx="340" cy="200" r="52" fill="#151d2e" stroke="#ff9900" stroke-width="3"/><text x="340" y="196" font-size="30">🔧</text><text x="340" y="226" font-size="17">Actuar</text>
+        <circle cx="200" cy="340" r="52" fill="#151d2e" stroke="#00e582" stroke-width="3"/><text x="200" y="336" font-size="30">👀</text><text x="200" y="366" font-size="17">Observar</text>
+        <circle cx="60" cy="200" r="52" fill="#151d2e" stroke="#ff57e9" stroke-width="3"/><text x="60" y="196" font-size="30">✅</text><text x="60" y="226" font-size="17">Responder</text>
+      </g>
+      <g class="orbita"><circle cx="200" cy="60" r="12" fill="#41b3ff" stroke="#fff" stroke-width="3"/></g>
+    </svg>
+    <div style="width:520px">
+      <div class="paso u fragment">👤 ¿Qué ropa llevo hoy en Pasto?</div>
+      <div class="paso fragment">🧠 Necesito saber el clima…</div>
+      <div class="paso t fragment">🔧 <code>clima_actual("pasto")</code></div>
+      <div class="paso o fragment">👀 12 °C · 70% de lluvia</div>
+      <div class="paso r fragment">✅ ¡Achichay! Saco y paraguas ☔</div>
+    </div>
+  </div>
+  <aside class="notes">
+    El ciclo del agente (agent loop): PENSAR → ACTUAR (usar una herramienta) → OBSERVAR el resultado → repetir si hace falta → RESPONDER.
+    Recorre el ejemplo paso a paso. Lo importante: NO programamos el "if clima…". El LLM DECIDE solo qué herramienta usar.
+    Eso es lo que lo diferencia de un chatbot normal.
+  </aside>
+</section>
+
+<!-- 11 · DIVISOR: EL TALLER -->
+<section class="divider" data-background-gradient="linear-gradient(120deg,#ff9900 0%,#ff57e9 60%,#ac5bff 100%)">
+  <span class="num">03</span>
+  <h1>El taller</h1>
+  <h3 style="font-weight:500;opacity:.85">Armando agentes en AWS</h3>
+  <aside class="notes">Tercera parte: ¿dónde consigo el motor y cómo armo el auto? → AWS.</aside>
+</section>
+
+<!-- 12 · BEDROCK = CONCESIONARIO DE MOTORES -->
+<section>
+  <span class="kicker">Amazon Bedrock</span>
+  <h2>Un <span class="g">concesionario</span> de motores</h2>
+  <div class="row" style="align-items:center;gap:40px;margin-top:10px">
+    <svg viewBox="0 0 220 170" width="170" height="131"><use href="#motor"/></svg>
+    <svg viewBox="0 0 220 170" width="170" height="131" style="filter:hue-rotate(160deg)"><use href="#motor"/></svg>
+    <svg viewBox="0 0 220 170" width="170" height="131" style="filter:hue-rotate(250deg)"><use href="#motor"/></svg>
+  </div>
+  <div class="modelos">
+    <span class="pill nova">Amazon Nova</span><span class="pill">Anthropic Claude</span><span class="pill">Meta Llama</span>
+    <span class="pill">Mistral</span><span class="pill">OpenAI gpt-oss</span><span class="pill">DeepSeek</span><span class="pill">Qwen</span><span class="pill">…</span>
+  </div>
+  <div class="row small" style="gap:18px;margin-top:10px">
+    <span class="fragment">🔌 Una sola API</span><span class="fragment">💳 Pagas por uso</span><span class="fragment">🔒 Tus datos no entrenan modelos</span>
+  </div>
+  <aside class="notes">
+    Amazon Bedrock: servicio administrado donde eliges el motor (modelo) que quieres sin montar servidores ni GPUs.
+    Cambias de motor cambiando un parámetro (model_id). Pagas por tokens usados.
+    Hoy usamos Amazon Nova: rápido y barato, ideal para demos con mucha gente.
+  </aside>
+</section>
+
+<!-- 13 · STRANDS -->
+<section>
+  <span class="kicker">Strands Agents · open source por AWS</span>
+  <h2>El <span class="g">kit</span> para armar tu auto</h2>
+  <div class="row" style="align-items:center;gap:18px;margin-top:20px">
+    <div class="card fragment pop"><span class="emo">🧠</span><b>Modelo</b><span class="s">el motor</span></div>
+    <div class="fragment" style="font-size:1.6em">+</div>
+    <div class="card fragment pop"><span class="emo">🔧</span><b>Herramientas</b><span class="s">las ruedas</span></div>
+    <div class="fragment" style="font-size:1.6em">+</div>
+    <div class="card fragment pop"><span class="emo">🎯</span><b>Prompt</b><span class="s">el volante</span></div>
+    <div class="fragment" style="font-size:1.6em">=</div>
+    <div class="card fragment pop" style="border-color:var(--green)"><span class="emo">🚗</span><b>Agente</b><span class="s">¡listo para rodar!</span></div>
+  </div>
+  <p class="fragment" style="margin-top:30px"><code style="font-family:var(--r-code-font);background:var(--panel);padding:.3em .8em;border-radius:10px;color:var(--green)">pip install strands-agents</code></p>
+  <aside class="notes">
+    Strands Agents: SDK de código abierto que publicó AWS (nació en equipos internos de AWS, p. ej. Amazon Q Developer).
+    Filosofía "model-driven": tú das las piezas y el modelo decide cómo manejar. Sin flujos rígidos.
+    Solo 3 ingredientes: modelo + herramientas + prompt. Funciona con Bedrock y con otros proveedores.
+  </aside>
+</section>
+
+<!-- 14 · CÓDIGO DEMO 1 -->
+<section>
+  <h3 style="margin-bottom:.3em;position:relative;z-index:3">Tu primer agente en <span class="g">~20 líneas</span></h3>
+  <pre><code class="language-python" data-trim data-line-numbers="1-3|5-9|11-15|17-22|24">
+from strands import Agent, tool
+from strands.models import BedrockModel
+from strands_tools import calculator, current_time
+
+# 🧠 1) EL MOTOR: un LLM en Amazon Bedrock
+motor = BedrockModel(
+    model_id="us.amazon.nova-lite-v1:0",
+    region_name="us-west-2",
+)
+
+# 🔧 2) UNA RUEDA: cualquier función de Python
+@tool
+def contar_letras(palabra: str, letra: str) -> int:
+    """Cuenta cuántas veces aparece una letra en una palabra."""
+    return palabra.lower().count(letra.lower())
+
+# 🚗 3) EL AUTO: motor + volante + ruedas
+agente = Agent(
+    model=motor,
+    system_prompt="Eres un asistente pastuso, amable y breve.",
+    tools=[calculator, current_time, contar_letras],
+)
+
+agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Ananay'?")
+  </code></pre>
+  <aside class="notes">
+    Avanza con la flecha y se resalta cada parte:
+    1) Importamos Strands.  2) MOTOR: BedrockModel con Nova Lite.  3) RUEDA propia: el decorador @tool convierte una función en herramienta; el docstring le explica al LLM para qué sirve.
+    4) AUTO: Agent junta motor + prompt + herramientas (calculator y current_time vienen listas en strands-agents-tools).
+    5) ¡Arrancar! Una sola línea.
+    Dato curioso: los LLM son malos contando letras (tokens) → por eso le damos una herramienta.
+  </aside>
+</section>
+
+<!-- 15 · DEMO 1 EN VIVO -->
+<section data-background-gradient="radial-gradient(circle at 50% 30%, #12304f 0%, #0b1020 65%)">
+  <div class="big-emoji">🛠️</div>
+  <h1>Demo <span class="g">en vivo</span></h1>
+  <div class="terminal">
+    <div><span class="p">$</span> uv run python demo-1-simple/agente_simple.py</div>
+    <div class="muted" style="margin-top:8px">🔧 Tool #1: current_time</div>
+    <div class="muted">🔧 Tool #2: calculator</div>
+    <div class="muted">🔧 Tool #3: contar_letras</div>
+  </div>
+  <aside class="notes">
+    Cambiar a la terminal (Alt+Tab). Ejecutar: uv run python demo-1-simple/agente_simple.py
+    Mostrar cómo el agente DECIDE usar las 3 herramientas por sí solo.
+    Plan B si falla internet: explicar la salida de esta diapositiva.
+  </aside>
+</section>
+
+<!-- 16 · DIVISOR: A LA CALLE -->
+<section class="divider" data-background-gradient="linear-gradient(120deg,#00e582 0%,#00b4ff 55%,#2f7bff 100%)">
+  <span class="num">04</span>
+  <h1>¡A la calle!</h1>
+  <h3 style="font-weight:500;opacity:.85">De mi portátil a la nube</h3>
+  <aside class="notes">Cuarta parte: el agente funciona en mi PC… ¿cómo lo uso con 50 personas al tiempo? → lo desplegamos en AWS.</aside>
+</section>
+
+<!-- 17 · CONTENEDOR + FARGATE -->
+<section>
+  <h2>Empacar y <span class="g">sacar a rodar</span></h2>
+  <div class="row" style="align-items:center;gap:22px;margin-top:20px">
+    <div class="card fragment pop"><span class="emo">💻</span><b>Mi código</b><span class="s">agente + app web</span></div>
+    <div class="fragment" style="font-size:1.4em;color:var(--cyan)">➜</div>
+    <div class="card fragment pop"><span class="emo">📦</span><b>Contenedor</b><span class="s">Docker: todo empacado</span></div>
+    <div class="fragment" style="font-size:1.4em;color:var(--cyan)">➜</div>
+    <div class="card fragment pop"><span class="emo">🗄️</span><b>Amazon ECR</b><span class="s">el parqueadero de imágenes</span></div>
+    <div class="fragment" style="font-size:1.4em;color:var(--cyan)">➜</div>
+    <div class="card fragment pop" style="border-color:var(--orange)"><span class="emo">🛣️</span><b>AWS Fargate</b><span class="s">la carretera, sin servidores</span></div>
+  </div>
+  <p class="fragment muted small" style="margin-top:30px">⚙️ Todo como código con <b style="color:var(--text)">AWS CDK</b> → <code>cdk deploy</code></p>
+  <aside class="notes">
+    Contenedor = como un auto que ya viene armado con TODO lo que necesita (Python, librerías, código). Corre igual en mi PC y en la nube.
+    ECR = donde guardamos esa imagen. Fargate = AWS pone la carretera: ejecuta el contenedor sin que yo administre servidores.
+    Y toda la infraestructura está escrita como código (CDK): un comando y se crea todo; otro comando y se destruye.
+  </aside>
+</section>
+
+<!-- 18 · ARQUITECTURA -->
+<section>
+  <h3 style="margin-bottom:.2em">La arquitectura de <span class="g">Galeritas</span> 🌋</h3>
+  <svg viewBox="0 0 1180 520" width="1180" height="520">
+    <!-- flujos -->
+    <g fill="none" stroke-width="3">
+      <path class="flujo" d="M180 200 L300 200" stroke="#41b3ff" marker-end="url(#flecha)"/>
+      <path class="flujo" d="M460 200 L560 200" stroke="#41b3ff" marker-end="url(#flecha)"/>
+      <path class="flujo" d="M830 170 L930 90" stroke="#ff9900" marker-end="url(#flecha)"/>
+      <path class="flujo" d="M830 200 L930 210" stroke="#ff57e9" marker-end="url(#flecha)"/>
+      <path class="flujo" d="M830 235 L930 330" stroke="#41b3ff" marker-end="url(#flecha)"/>
+      <path class="flujo" d="M560 260 L180 400" stroke="#00e582" marker-end="url(#flecha)"/>
+    </g>
+    <!-- nodos -->
+    <g class="nodo" text-anchor="middle">
+      <rect x="20" y="140" width="160" height="120" rx="18"/><text x="100" y="190" font-size="40">📱</text><text x="100" y="228" font-size="19" font-weight="700">Sus celulares</text>
+      <rect x="20" y="350" width="160" height="120" rx="18"/><text x="100" y="400" font-size="40">📺</text><text x="100" y="438" font-size="19" font-weight="700">Muro en vivo</text>
+      <rect x="300" y="140" width="160" height="120" rx="18"/><text x="380" y="190" font-size="40">🌐</text><text x="380" y="224" font-size="17" font-weight="700">CloudFront</text><text x="380" y="246" class="sub">+ Load Balancer</text>
+      <!-- Fargate -->
+      <rect x="560" y="70" width="270" height="290" rx="22" style="fill:#2a1d0a;stroke:#ff9900;stroke-width:2.5"/>
+      <text x="695" y="105" font-size="18" font-weight="700" fill="#ff9900">🛣️ AWS Fargate</text>
+      <rect x="585" y="125" width="220" height="210" rx="16" style="fill:#151d2e;stroke:#ffffff22"/>
+      <text x="695" y="160" font-size="16" class="sub">📦 contenedor</text>
+      <text x="695" y="205" font-size="36">🚗</text>
+      <text x="695" y="245" font-size="19" font-weight="700">Agente Strands</text>
+      <text x="695" y="272" class="sub">FastAPI · streaming</text>
+      <text x="695" y="310" class="sub">🎯 prompt · 🧳 memoria</text>
+      <!-- servicios -->
+      <rect x="930" y="30" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff9900"/><text x="1045" y="70" font-size="30">🧠</text><text x="1045" y="102" font-size="18" font-weight="700">Bedrock · Nova</text><text x="1045" y="124" class="sub">el motor</text>
+      <rect x="930" y="160" width="230" height="110" rx="18" style="fill:#151d2e;stroke:#ff57e9"/><text x="1045" y="200" font-size="30">🎨</text><text x="1045" y="232" font-size="18" font-weight="700">Nova Canvas</text><text x="1045" y="254" class="sub">rueda: imágenes</text>
+      <rect x="930" y="290" width="230" height="150" rx="18" style="fill:#151d2e;stroke:#41b3ff"/><text x="1045" y="330" font-size="30">🌦️ 📚</text><text x="1045" y="364" font-size="18" font-weight="700">Clima real</text><text x="1045" y="388" font-size="18" font-weight="700">+ Base de Pasto</text><text x="1045" y="412" class="sub">ruedas: datos</text>
+    </g>
+  </svg>
+  <aside class="notes">
+    Recorre de izquierda a derecha: sus celulares entran por CloudFront (HTTPS) → Load Balancer → contenedor en Fargate.
+    Dentro está el agente Strands: el motor es Nova en Bedrock; tiene 3 ruedas: clima real (API Open-Meteo), base de conocimiento de Pasto, y generación de imágenes con Nova Canvas.
+    Todo lo que pasa se transmite en vivo al muro (pantalla grande).
+  </aside>
+</section>
+
+<!-- 19 · QR -->
+<section id="qr-slide" data-background-gradient="radial-gradient(circle at 70% 20%, #3a1f8a 0%, #0b1020 60%)">
+  <div class="row" style="align-items:center;gap:70px">
+    <div style="text-align:left;max-width:520px">
+      <div class="big-emoji" style="font-size:3.5em">📱</div>
+      <h1 style="font-size:2.2em">¡Saquen<br>el <span class="g">celular!</span></h1>
+      <p class="muted">Habla con <b style="color:var(--text)">Galeritas</b> 🌋</p>
+      <div class="small">Código: <span class="pin" id="pinTxt">—</span></div>
+    </div>
+    <div>
+      <div class="qrbox"><div id="qrDemo"></div></div>
+      <div class="url" id="urlTxt" style="margin-top:12px"></div>
+      <div class="aviso" id="avisoCfg">⚙️ Presiona <b>C</b> para configurar la URL de la demo</div>
+    </div>
+  </div>
+  <aside class="notes">
+    Momento estrella. Que escaneen el QR y entren con su nombre (el código ya va dentro del QR).
+    Sugiéreles: "Diseña mi carroza del carnaval con un cuy astronauta", "¿Qué ropa llevo hoy?", "Planea mi día en la Cocha".
+    Luego pasa a la siguiente diapositiva para mostrar el muro.
+  </aside>
+</section>
+
+<!-- 20 · MURO EN VIVO -->
+<section data-background-color="#0b1020">
+  <h2>📺 El motor <span class="g">en acción</span></h2>
+  <p class="muted">Todo lo que preguntan, las ruedas que usa y las carrozas que pinta</p>
+  <p><a id="btnMuro" href="#" target="_blank" rel="noopener" style="display:inline-block;padding:.6em 1.4em;border-radius:14px;background:var(--grad);color:#fff;font-weight:700;text-decoration:none">Abrir muro en vivo ↗</a></p>
+  <aside class="notes">
+    Abre el muro en otra pestaña a pantalla completa (F11). Comenta en vivo: "miren, X preguntó por el clima y el agente usó la rueda de clima"…
+    Dale 5-7 minutos. Celebra las mejores carrozas.
+  </aside>
+</section>
+
+<!-- 21 · RESUMEN -->
+<section>
+  <h2>Lo que nos <span class="g">llevamos</span></h2>
+  <div class="row" style="margin-top:20px">
+    <div class="card fragment pop"><span class="emo">🧠</span><b>LLM = motor</b><span class="s">predice palabras, potente pero quieto</span></div>
+    <div class="card fragment pop"><span class="emo">🚗</span><b>Agente = auto</b><span class="s">motor + prompt + memoria + herramientas</span></div>
+    <div class="card fragment pop"><span class="emo">☁️</span><b>AWS = el taller</b><span class="s">Bedrock + Strands + Fargate</span></div>
+  </div>
+  <aside class="notes">Resumen en 3 ideas. Invitar a que armen su propio agente: el código está en el repo.</aside>
+</section>
+
+<!-- 22 · RECURSOS -->
+<section>
+  <h2>Armen <span class="g">su propio auto</span> 🔧</h2>
+  <div class="row" style="align-items:center;gap:60px;margin-top:10px">
+    <div><div class="qrbox"><div id="qrRepo"></div></div><p class="small muted" style="margin-top:10px">Código + diapositivas</p></div>
+    <div style="text-align:left;font-size:.75em;line-height:2">
+      <div>🧩 strandsagents.com</div>
+      <div>🧠 aws.amazon.com/bedrock</div>
+      <div>🎓 skillbuilder.aws</div>
+      <div>👷 builder.aws.com</div>
+    </div>
+  </div>
+  <aside class="notes">El repo tiene la demo 1, la demo 2 completa y la infraestructura. Pueden clonarlo y desplegarlo con su capa gratuita.</aside>
+</section>
+
+<!-- 23 · GRACIAS -->
+<section data-background-gradient="linear-gradient(120deg,#6a2bff 0%,#2f7bff 45%,#00b4ff 100%)">
+  <h1>¡Gracias! 🙌</h1>
+  <h3 style="font-weight:500">¿Preguntas?</h3>
+  <p style="margin-top:1em"><b id="nombre2">Andrés Insuasty</b> · <span style="opacity:.85">Datos Dinámicos</span></p>
+  <p class="small" style="opacity:.9">📅 Próximo meetup presencial: <b>sábado 12 de diciembre</b></p>
+  <aside class="notes">Q&A. Compartir contacto. Anunciar el Kahoot y la rifa de créditos de AWS. Anunciar el próximo meetup (sábado 12 de diciembre).</aside>
+</section>
+
+</div></div>
+
+<!-- Panel de configuración (tecla C) -->
+<div id="cfg"><form id="cfgForm">
+  <b>⚙️ Configuración de la demo</b>
+  <label class="small">URL de la demo (CloudFront)<input id="cfgUrl" placeholder="https://xxxx.cloudfront.net"></label>
+  <label class="small">Código de acceso (PIN)<input id="cfgPin" placeholder="PASTO"></label>
+  <button>Guardar</button>
+  <small class="muted">Se guarda solo en este navegador. También puedes usar ?demo=URL&amp;pin=PIN</small>
+</form></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const REPO_URL = "https://github.com/AndresInsuasty/aws-ug-pasto-agentes-ia";
+
+// --- configuración de la demo (no se sube el PIN al repo público) ---
+const qs = new URLSearchParams(location.search);
+function leer(k){ try { return localStorage.getItem(k) || ""; } catch { return ""; } }
+function guardar(k, v){ try { localStorage.setItem(k, v); } catch {} }
+if (qs.get("demo")) guardar("demoUrl", qs.get("demo"));
+if (qs.get("pin")) guardar("demoPin", qs.get("pin"));
+
+function pintarQR(el, texto, tam){
+  el.innerHTML = "";
+  new QRCode(el, { text: texto, width: tam, height: tam, colorDark: "#0b1020", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+}
+function aplicarConfig(){
+  const url = leer("demoUrl").replace(/\/+$/, ""); const pin = leer("demoPin");
+  const urlApp = url ? url + "/" + (pin ? "?pin=" + encodeURIComponent(pin) : "") : "";
+  document.getElementById("pinTxt").textContent = pin || "—";
+  document.getElementById("urlTxt").textContent = url.replace(/^https?:\/\//, "");
+  document.getElementById("avisoCfg").style.display = url ? "none" : "block";
+  if (urlApp) pintarQR(document.getElementById("qrDemo"), urlApp, 340);
+  else document.getElementById("qrDemo").innerHTML = '<div style="width:340px;height:340px;display:grid;place-items:center;color:#0b1020;font-size:80px">🌋</div>';
+  document.getElementById("btnMuro").href = url ? url + "/muro" + (pin ? "?pin=" + encodeURIComponent(pin) : "") : "#";
+}
+function abrirConfig(){
+  document.getElementById("cfgUrl").value = leer("demoUrl");
+  document.getElementById("cfgPin").value = leer("demoPin");
+  document.getElementById("cfg").classList.add("on");
+  document.getElementById("cfgUrl").focus();
+}
+document.getElementById("cfgForm").onsubmit = (e) => {
+  e.preventDefault();
+  guardar("demoUrl", document.getElementById("cfgUrl").value.trim());
+  guardar("demoPin", document.getElementById("cfgPin").value.trim());
+  document.getElementById("cfg").classList.remove("on");
+  aplicarConfig();
+};
+document.getElementById("cfg").onclick = (e) => { if (e.target.id === "cfg") e.currentTarget.classList.remove("on"); };
+
+// --- diapositiva interactiva del LLM ---
+function animarBarras(){
+  document.querySelectorAll("#barras .barra").forEach((b, i) => {
+    const f = b.querySelector(".f"); f.style.width = "0";
+    setTimeout(() => { f.style.width = b.dataset.p + "%"; }, 250 + i * 180);
+  });
+  document.getElementById("hueco").innerHTML = "&nbsp;?&nbsp;";
+}
+document.querySelectorAll("#barras .barra").forEach(b => {
+  b.onclick = () => { document.getElementById("hueco").textContent = b.dataset.w; };
+});
+
+Reveal.initialize({
+  hash: true, width: 1280, height: 720, margin: 0.04,
+  transition: "slide", backgroundTransition: "fade",
+  controls: true, progress: true, slideNumber: "c/t", center: true,
+  plugins: [RevealNotes, RevealHighlight],
+  keyboard: { 67: abrirConfig },
+}).then(() => {
+  aplicarConfig();
+  pintarQR(document.getElementById("qrRepo"), REPO_URL, 260);
+  if (Reveal.getCurrentSlide().id === "llm") animarBarras();
+});
+Reveal.on("slidechanged", (e) => { if (e.currentSlide.id === "llm") animarBarras(); });
+</script>
+</body>
+</html>

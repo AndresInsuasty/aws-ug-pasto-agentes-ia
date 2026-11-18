@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muro en vivo · Galeritas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{--bg:#0b1020;--panel:#151d2e;--panel2:#1c2740;--text:#eef2ff;--muted:#93a0bd;
+    --cyan:#41b3ff;--green:#00e582;--pink:#ff57e9;--purple:#ac5bff;--orange:#ff9900;
+    --grad:linear-gradient(120deg,#6a2bff 0%,#2f7bff 45%,#00b4ff 100%)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+  body{display:grid;grid-template-rows:auto 1fr auto;height:100vh;gap:16px;padding:20px 24px}
+  header{display:flex;align-items:center;gap:20px}
+  h1{font:700 34px/1 "Space Grotesk",sans-serif;margin:0}
+  h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .live{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:#ff6b6b;font-weight:600;letter-spacing:.08em}
+  .live::before{content:"";width:10px;height:10px;border-radius:50%;background:#ff4d4d;animation:p 1.4s infinite}
+  @keyframes p{50%{opacity:.25}}
+  .stats{margin-left:auto;display:flex;gap:14px}
+  .stat{background:var(--panel);padding:10px 18px;border-radius:14px;text-align:center;min-width:110px}
+  .stat b{display:block;font:700 34px/1 "Space Grotesk",sans-serif}
+  .stat small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  .qr{background:#fff;padding:8px;border-radius:12px;display:flex;align-items:center;gap:10px;color:#0b1020}
+  .qr small{font-weight:600;max-width:90px;font-size:13px;line-height:1.2}
+  .grid{display:grid;grid-template-columns:minmax(360px,1fr) 2fr;gap:18px;min-height:0}
+  .col{background:var(--panel);border-radius:18px;padding:16px;min-height:0;display:flex;flex-direction:column}
+  .col h2{font:600 14px/1 Inter;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:0 0 12px}
+  #feed{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+  .ev{padding:10px 12px;border-radius:12px;background:var(--panel2);animation:in .4s ease-out;font-size:16px;line-height:1.35}
+  .ev .who{font-weight:600;color:var(--cyan)}
+  .ev.tool{background:transparent;border:1px dashed #ffffff26;font-size:14px;color:var(--green);padding:6px 12px}
+  .ev.tool.imagen{color:var(--pink)} .ev.tool.clima{color:var(--cyan)}
+  .ev.resp{border-left:3px solid var(--purple);color:#d9def0;font-size:14px}
+  .ev.llegada{background:transparent;color:var(--muted);font-size:13px;padding:2px 12px}
+  @keyframes in{from{opacity:0;transform:translateY(-8px)}}
+  #galeria{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:12px;min-height:0}
+  #galeria figure{margin:0;position:relative;border-radius:14px;overflow:hidden;background:var(--panel2);animation:in .6s}
+  #galeria figure:first-child{grid-column:span 2;grid-row:span 2;box-shadow:0 0 0 3px var(--pink)}
+  #galeria img{width:100%;height:100%;object-fit:cover;display:block}
+  #galeria figcaption{position:absolute;left:0;right:0;bottom:0;padding:8px 10px;font-size:13px;background:linear-gradient(transparent,#000c)}
+  .vacio{grid-column:1/-1;grid-row:1/-1;display:grid;place-items:center;color:var(--muted);font-size:20px;text-align:center}
+  footer{display:flex;gap:14px;align-items:center}
+  footer .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+  .barra{flex:1;background:var(--panel);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px}
+  .barra .n{font:700 22px "Space Grotesk";min-width:36px;text-align:right}
+  .barra .track{flex:1;height:10px;border-radius:6px;background:var(--panel2);overflow:hidden}
+  .barra .fill{height:100%;width:0;border-radius:6px;transition:width .6s}
+  .barra.pulse{box-shadow:0 0 0 2px currentColor}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="live">EN VIVO</div>
+    <h1>🌋 <span>Galeritas</span> · el motor en acción</h1>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="sPersonas">0</b><small>personas</small></div>
+    <div class="stat"><b id="sPreguntas">0</b><small>preguntas</small></div>
+    <div class="stat"><b id="sImagenes">0</b><small>imágenes</small></div>
+  </div>
+  <div class="qr"><div id="qr"></div><small>Escanea y habla con el agente</small></div>
+</header>
+
+<div class="grid">
+  <section class="col"><h2>🧠 Lo que el agente está pensando</h2><div id="feed"></div></section>
+  <section class="col"><h2>🎨 Galería del carnaval · Amazon Nova Canvas</h2><div id="galeria"><div class="vacio">Pídele a Galeritas que diseñe tu carroza 🎭</div></div></section>
+</div>
+
+<footer>
+  <span class="lbl">Ruedas (herramientas) usadas</span>
+  <div class="barra" id="b-clima" style="color:var(--cyan)">🌦️ Clima<div class="track"><div class="fill" style="background:var(--cyan)"></div></div><span class="n">0</span></div>
+  <div class="barra" id="b-conocimiento" style="color:var(--green)">📚 Conocimiento<div class="track"><div class="fill" style="background:var(--green)"></div></div><span class="n">0</span></div>
+  <div class="barra" id="b-imagen" style="color:var(--pink)">🎨 Imagen<div class="track"><div class="fill" style="background:var(--pink)"></div></div><span class="n">0</span></div>
+</footer>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const urlApp = location.origin + "/" + (params.get("pin") ? "?pin=" + encodeURIComponent(params.get("pin")) : "");
+new QRCode($("#qr"), { text: urlApp, width: 84, height: 84, correctLevel: QRCode.CorrectLevel.M });
+
+function esc(t){ return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+const NOMBRES = { clima: "🌦️ consultó el clima real", conocimiento: "📚 buscó en la base de conocimiento", imagen: "🎨 está pintando con Nova Canvas" };
+
+function agregarFeed(html, cls){
+  const d = document.createElement("div"); d.className = "ev " + (cls || ""); d.innerHTML = html;
+  const f = $("#feed"); f.prepend(d); while (f.children.length > 30) f.lastChild.remove();
+}
+function agregarImagen(ev){
+  const g = $("#galeria"); g.querySelector(".vacio")?.remove();
+  const f = document.createElement("figure");
+  f.innerHTML = `<img src="${esc(ev.url)}" alt=""><figcaption><b>${esc(ev.titulo)}</b> · ${esc(ev.apodo)}</figcaption>`;
+  g.prepend(f); while (g.children.length > 9) g.lastChild.remove();
+}
+function stats(s){
+  $("#sPersonas").textContent = s.personas; $("#sPreguntas").textContent = s.preguntas; $("#sImagenes").textContent = s.imagenes;
+  const h = s.herramientas || {}; const max = Math.max(1, ...Object.values(h));
+  for (const k of ["clima", "conocimiento", "imagen"]) {
+    const b = $("#b-" + k); const n = h[k] || 0;
+    b.querySelector(".n").textContent = n; b.querySelector(".fill").style.width = (100 * n / max) + "%";
+  }
+}
+function pulso(k){ const b = $("#b-" + k); if (!b) return; b.classList.add("pulse"); setTimeout(() => b.classList.remove("pulse"), 900); }
+
+function conectar(){
+  const es = new EventSource("/api/muro/stream");
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data);
+    switch (ev.tipo) {
+      case "stats": stats(ev); break;
+      case "llegada": agregarFeed(`👋 <b>${esc(ev.apodo)}</b> subió al auto`, "llegada"); break;
+      case "pregunta": agregarFeed(`<span class="who">${esc(ev.apodo)}:</span> ${esc(ev.texto)}`); break;
+      case "herramienta": agregarFeed(`🔧 ${NOMBRES[ev.nombre] || ev.nombre} <span style="opacity:.7">· ${esc(ev.detalle)}</span>`, "tool " + ev.nombre); if (!ev.historial) pulso(ev.nombre); break;
+      case "respuesta": agregarFeed(`🌋 ${esc(ev.texto.length > 180 ? ev.texto.slice(0, 180) + "…" : ev.texto)}`, "resp"); break;
+      case "imagen": agregarImagen(ev); break;
+    }
+  };
+  es.onerror = () => { es.close(); setTimeout(conectar, 3000); };
+}
+conectar();
+</script>
+</body>
+</html>
