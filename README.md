@@ -18,7 +18,7 @@ Charla del **AWS User Group Pasto** 🇨🇴. Explica qué es un agente de IA co
 📱 celulares ──HTTPS──► CloudFront ──► Load Balancer ──► AWS Fargate (contenedor)
 📺 muro en vivo ◄──SSE─────────────────────────────────┘   │  FastAPI + Strands Agents
                                                            ├─► 🧠 Amazon Bedrock · Nova Lite (motor)
-                                                           ├─► 🎨 Amazon Nova Canvas (imágenes)
+                                                           ├─► 🎨 Stable Image Core en Bedrock (imágenes)
                                                            ├─► 🌦️ Open-Meteo (clima real)
                                                            └─► 📚 base de conocimiento de Pasto
 ```
@@ -68,7 +68,7 @@ cd infra
 npx aws-cdk@2.1148.1 destroy
 ```
 
-Encendida, la demo cuesta aproximadamente **1–1.5 USD/día** (Fargate + Load Balancer), más el uso de Bedrock (Nova Lite cuesta centavos; cada imagen de Nova Canvas, unos 0.04 USD).
+Encendida, la demo cuesta aproximadamente **1–1.5 USD/día** (Fargate + Load Balancer), más el uso de Bedrock (Nova Lite cuesta centavos; cada imagen de Stable Image Core, unos 0.04 USD).
 
 ## Presentar
 

@@ -68,7 +68,7 @@
 
 <div class="grid">
   <section class="col"><h2>🧠 Lo que el agente está pensando</h2><div id="feed"></div></section>
-  <section class="col"><h2>🎨 Galería del carnaval · Amazon Nova Canvas</h2><div id="galeria"><div class="vacio">Pídele a Galeritas que diseñe tu carroza 🎭</div></div></section>
+  <section class="col"><h2>🎨 Galería del carnaval · Stable Image en Bedrock</h2><div id="galeria"><div class="vacio">Pídele a Galeritas que diseñe tu carroza 🎭</div></div></section>
 </div>
 
 <footer>
@@ -85,7 +85,7 @@ const urlApp = location.origin + "/" + (params.get("pin") ? "?pin=" + encodeURIC
 new QRCode($("#qr"), { text: urlApp, width: 84, height: 84, correctLevel: QRCode.CorrectLevel.M });
 
 function esc(t){ return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-const NOMBRES = { clima: "🌦️ consultó el clima real", conocimiento: "📚 buscó en la base de conocimiento", imagen: "🎨 está pintando con Nova Canvas" };
+const NOMBRES = { clima: "🌦️ consultó el clima real", conocimiento: "📚 buscó en la base de conocimiento", imagen: "🎨 está pintando una imagen" };
 
 function agregarFeed(html, cls){
   const d = document.createElement("div"); d.className = "ev " + (cls || ""); d.innerHTML = html;

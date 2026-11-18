@@ -12,8 +12,8 @@ from strands import tool
 
 from . import conocimiento
 
-IMAGE_MODEL_ID = os.getenv("IMAGE_MODEL_ID", "amazon.nova-canvas-v1:0")
-IMAGE_REGION = os.getenv("IMAGE_REGION", "us-east-1")
+IMAGE_MODEL_ID = os.getenv("IMAGE_MODEL_ID", "stability.stable-image-core-v1:1")
+IMAGE_REGION = os.getenv("IMAGE_REGION", os.getenv("AWS_REGION", "us-west-2"))
 MAX_IMAGENES_TOTAL = int(os.getenv("MAX_IMAGENES_TOTAL", "250"))
 
 _bedrock_img = boto3.client("bedrock-runtime", region_name=IMAGE_REGION)
@@ -106,7 +106,7 @@ def crear_herramientas(sesion) -> list:
 
     @tool
     def generar_imagen(descripcion_en_ingles: str, titulo: str) -> str:
-        """Genera una imagen con Amazon Nova Canvas y la muestra al usuario y en el muro en vivo.
+        """Genera una imagen con Stable Image Core (Bedrock) y la muestra al usuario y en el muro en vivo.
         Úsala cuando pidan dibujar, diseñar o imaginar algo (p. ej. una carroza del carnaval).
 
         Args:
@@ -123,15 +123,10 @@ def crear_herramientas(sesion) -> list:
             resp = _bedrock_img.invoke_model(
                 modelId=IMAGE_MODEL_ID,
                 body=json.dumps({
-                    "taskType": "TEXT_IMAGE",
-                    "textToImageParams": {
-                        "text": descripcion_en_ingles[:1000],
-                        "negativeText": "text, letters, watermark, blurry, low quality",
-                    },
-                    "imageGenerationConfig": {
-                        "numberOfImages": 1, "width": 768, "height": 768,
-                        "cfgScale": 7.5, "quality": "standard",
-                    },
+                    "prompt": descripcion_en_ingles[:1500],
+                    "negative_prompt": "text, letters, watermark, blurry, low quality",
+                    "aspect_ratio": "1:1",
+                    "output_format": "png",
                 }),
             )
             b64 = json.loads(resp["body"].read())["images"][0]

@@ -33,8 +33,8 @@ class GaleritasStack(cdk.Stack):
         email = self.node.try_get_context("email")
         presupuesto = float(self.node.try_get_context("presupuesto") or 10)
         modelo = self.node.try_get_context("modelo") or "us.amazon.nova-lite-v1:0"
-        modelo_imagen = self.node.try_get_context("modeloImagen") or "amazon.nova-canvas-v1:0"
-        region_imagen = self.node.try_get_context("regionImagen") or "us-east-1"
+        modelo_imagen = self.node.try_get_context("modeloImagen") or "stability.stable-image-core-v1:1"
+        region_imagen = self.node.try_get_context("regionImagen") or self.region
 
         # Red: solo subredes públicas (sin NAT Gateway = más barato)
         vpc = ec2.Vpc(
