@@ -13,6 +13,8 @@ import re
 import secrets
 import time
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -29,6 +31,7 @@ from .muro import Muro
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
 MAX_SESIONES = int(os.getenv("MAX_SESIONES", "400"))
 MAX_CHARS = 400
+HILOS = int(os.getenv("HILOS", "64"))
 
 STATIC = Path(__file__).parent / "static"
 
@@ -47,7 +50,15 @@ Reglas:
 - Mantente en temas de Pasto, Nariño, turismo, cultura, la nube de AWS y la IA. Sé respetuoso siempre.
 """
 
-app = FastAPI(title="Agente guía de Pasto")
+@asynccontextmanager
+async def ciclo_de_vida(_app):
+    # Las herramientas síncronas (dibujar, clima) corren en hilos que casi siempre esperan a la red.
+    # El grupo por defecto de Python solo trae ~5 hilos con 1 vCPU: con más gente dibujando, harían cola.
+    asyncio.get_running_loop().set_default_executor(ThreadPoolExecutor(max_workers=HILOS))
+    yield
+
+
+app = FastAPI(title="Agente guía de Pasto", lifespan=ciclo_de_vida)
 muro = Muro()
 
 
