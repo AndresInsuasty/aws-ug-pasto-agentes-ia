@@ -3,8 +3,7 @@
 
 Celulares ─HTTPS─► CloudFront ─► Application Load Balancer ─► Fargate (contenedor) ─► Bedrock (gpt-oss + Kimi)
 
-Antes de desplegar, guarda la API key de Bedrock en Secrets Manager (ver README):
-  aws secretsmanager create-secret --name aws-ug-pasto/bedrock-api-key --secret-string <API_KEY>
+Sin API keys guardadas: el contenedor genera llaves de Bedrock de corta duración con su rol de IAM.
 
 Parámetros (contexto CDK):
   -c pin=CODIGO         código de acceso que pide la app (recomendado)
@@ -12,7 +11,6 @@ Parámetros (contexto CDK):
   -c presupuesto=10     límite mensual en USD para la alerta (opcional)
   -c modelo=...         motor que conversa (por defecto openai.gpt-oss-120b)
   -c ilustrador=...     modelo que dibuja (por defecto moonshotai.kimi-k2.5)
-  -c secreto=...        nombre del secreto con la API key (por defecto aws-ug-pasto/bedrock-api-key)
 """
 
 import aws_cdk as cdk
@@ -24,8 +22,8 @@ from aws_cdk import (
     aws_ecs as ecs,
     aws_ecs_patterns as ecs_patterns,
     aws_ecr_assets as ecr_assets,
+    aws_iam as iam,
     aws_logs as logs,
-    aws_secretsmanager as secretsmanager,
 )
 from constructs import Construct
 
@@ -39,11 +37,7 @@ class AgenteGalerasStack(cdk.Stack):
         presupuesto = float(self.node.try_get_context("presupuesto") or 10)
         modelo = self.node.try_get_context("modelo") or "openai.gpt-oss-120b"
         ilustrador = self.node.try_get_context("ilustrador") or "moonshotai.kimi-k2.5"
-        nombre_secreto = self.node.try_get_context("secreto") or "aws-ug-pasto/bedrock-api-key"
         llm_url = self.node.try_get_context("llmUrl") or f"https://bedrock-mantle.{self.region}.api.aws/v1"
-
-        # La API key de Bedrock vive en Secrets Manager; ECS la inyecta al contenedor (nunca va al repo)
-        api_key = secretsmanager.Secret.from_secret_name_v2(self, "BedrockApiKey", nombre_secreto)
 
         # Red: solo subredes públicas (sin NAT Gateway = más barato)
         vpc = ec2.Vpc(
@@ -74,12 +68,17 @@ class AgenteGalerasStack(cdk.Stack):
                     "ILUSTRADOR_ID": ilustrador,
                     "ACCESS_CODE": pin,
                 },
-                secrets={"LLM_API_KEY": ecs.Secret.from_secrets_manager(api_key)},
                 log_driver=ecs.LogDrivers.aws_logs(stream_prefix="agente-galeras", log_retention=logs.RetentionDays.ONE_WEEK),
             ),
             min_healthy_percent=0, max_healthy_percent=100,
             circuit_breaker=ecs.DeploymentCircuitBreaker(rollback=True),
         )
+        # El rol de la tarea puede usar Bedrock con llaves de corta duración que el contenedor
+        # genera solo (sin secretos que se venzan)
+        servicio.task_definition.add_to_task_role_policy(iam.PolicyStatement(
+            actions=["bedrock:CallWithBearerToken", "bedrock:InvokeModel*", "bedrock-mantle:*"],
+            resources=["*"],
+        ))
         servicio.target_group.configure_health_check(path="/health", healthy_threshold_count=2, interval=cdk.Duration.seconds(15))
         servicio.target_group.set_attribute("deregistration_delay.timeout_seconds", "5")
         servicio.load_balancer.set_attribute("idle_timeout.timeout_seconds", "120")  # streaming SSE

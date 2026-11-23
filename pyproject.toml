@@ -5,6 +5,7 @@ description = "Agentes de IA en AWS: charla y demos del AWS User Group Pasto"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aws-bedrock-token-generator>=1.1.0",
     "boto3>=1.44.5",
     "botocore[crt]>=1.44.5",
     "fastapi>=0.164.0",

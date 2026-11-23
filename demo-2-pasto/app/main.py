@@ -23,7 +23,7 @@ from strands.agent.conversation_manager import SlidingWindowConversationManager
 from strands.models.openai import OpenAIModel
 
 from .herramientas import crear_herramientas
-from .motor import LLM_API_KEY, LLM_BASE_URL, MODEL_ID
+from .motor import MODEL_ID, config_motor
 from .muro import Muro
 
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
@@ -62,8 +62,7 @@ class Sesion:
         self._loop: asyncio.AbstractEventLoop | None = None
         self.agente = Agent(
             model=OpenAIModel(
-                client_args={"base_url": LLM_BASE_URL, "api_key": LLM_API_KEY},
-                model_id=MODEL_ID, params={"temperature": 0.6, "max_tokens": 1200},
+                model_id=MODEL_ID, params={"temperature": 0.6, "max_tokens": 1200}, **config_motor(),
             ),
             system_prompt=SYSTEM_PROMPT,
             tools=crear_herramientas(self),

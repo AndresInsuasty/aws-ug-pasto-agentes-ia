@@ -27,7 +27,7 @@ Charla del **AWS User Group Pasto** 🇨🇴. Explica qué es un agente de IA co
 
 - Python 3.12+ y [uv](https://docs.astral.sh/uv/)
 - Una cuenta de AWS con Amazon Bedrock y una **API key de Bedrock** (consola de Bedrock → *API keys*)
-- Copia `.env.example` a `.env` y pon tu API key y la URL del endpoint compatible con OpenAI de tu región
+- Copia `.env.example` a `.env` y pon tu API key y la URL del endpoint compatible con OpenAI de tu región (para la demo 1; las llaves de corta duración vencen en 12 h)
 - AWS CLI configurado (`aws login` o `aws configure`), **no root**
 - Para desplegar: Node.js 18+ y Docker Desktop encendido
 
@@ -50,16 +50,13 @@ uv run --project .. uvicorn app.main:app --reload --port 8080
 # muro:  http://localhost:8080/muro
 ```
 
-Lee `OPENAI_BASE_URL` y `OPENAI_API_KEY` del entorno (carga tu `.env`). Variables opcionales: `ACCESS_CODE` (PIN), `MODEL_ID` (motor), `ILUSTRADOR_ID` (modelo que dibuja), `MAX_IMAGENES_TOTAL`.
+No necesita API key: genera llaves de Bedrock de corta duración con tus credenciales de AWS (`aws login`) y las renueva solas. Si prefieres una llave fija, define `LLM_API_KEY`. Variables opcionales: `ACCESS_CODE` (PIN), `MODEL_ID` (motor), `ILUSTRADOR_ID` (modelo que dibuja), `MAX_IMAGENES_TOTAL`.
 
 ## Desplegar en AWS
 
 ```bash
 cd infra
-# 1) Guarda la API key de Bedrock en Secrets Manager (una sola vez)
-aws secretsmanager create-secret --region us-east-2 --name aws-ug-pasto/bedrock-api-key --secret-string "TU_API_KEY"
-
-# 2) Despliega
+# Sin secretos: el contenedor genera sus llaves de Bedrock con su rol de IAM
 npx aws-cdk@2.1148.1 bootstrap                     # solo la primera vez por cuenta/región
 npx aws-cdk@2.1148.1 deploy -c pin=TU_PIN -c email=tu@correo.com -c presupuesto=10
 ```
@@ -83,7 +80,7 @@ cd infra
 npx aws-cdk@2.1148.1 destroy
 ```
 
-Encendida, la demo cuesta aproximadamente **1–1.5 USD/día** (Fargate + Load Balancer), más el uso de Bedrock (gpt-oss y Kimi se cobran por token: centavos por conversación) y ~0.40 USD/mes del secreto.
+Encendida, la demo cuesta aproximadamente **1–1.5 USD/día** (Fargate + Load Balancer), más el uso de Bedrock (gpt-oss y Kimi se cobran por token: centavos por conversación).
 
 ## Presentar
 
