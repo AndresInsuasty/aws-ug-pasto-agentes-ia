@@ -434,7 +434,7 @@ from herramientas import calcular, hora_actual
 # 🧠 1) EL MOTOR: gpt-oss en Amazon Bedrock
 motor = OpenAIModel(
     model_id="openai.gpt-oss-120b",
-    client_args={"base_url": BEDROCK_URL, "api_key": API_KEY},
+    bedrock_mantle_config={"region": "us-east-2"},  # sin API keys: usa IAM
 )
 
 # 🔧 2) UNA RUEDA: cualquier función de Python
@@ -454,7 +454,7 @@ agente("¿Qué hora es? ¿Cuántas 'a' tiene 'Achichay'?")
   </code></pre>
   <aside class="notes">
     Avanza con la flecha y se resalta cada parte:
-    1) Importamos Strands.  2) MOTOR: OpenAIModel apuntando al endpoint de Bedrock con gpt-oss-120b (la URL y la API key vienen del archivo .env).  3) RUEDA propia: el decorador @tool convierte una función en herramienta; el docstring le explica al LLM para qué sirve.
+    1) Importamos Strands.  2) MOTOR: OpenAIModel apuntando al endpoint de Bedrock compatible con OpenAI, con gpt-oss-120b. Sin API keys pegadas en el código: Strands genera llaves temporales con tus credenciales de AWS (IAM) y las renueva solo. En producción (Fargate) usa el rol de la tarea.  3) RUEDA propia: el decorador @tool convierte una función en herramienta; el docstring le explica al LLM para qué sirve.
     4) AUTO: Agent junta motor + prompt + herramientas (calcular y hora_actual están en demo-1-simple/herramientas.py, también hechas con @tool).
     5) ¡Arrancar! Una sola línea.
     Dato curioso: los LLM son malos contando letras (tokens) → por eso le damos una herramienta.

@@ -3,13 +3,12 @@ Demo 1 — Mi primer agente con Strands Agents + Amazon Bedrock (gpt-oss).
 
 Un agente = MOTOR (LLM) + VOLANTE (instrucciones) + RUEDAS (herramientas).
 
-Requiere un archivo .env en la raíz del proyecto (ver .env.example).
+No necesita API key: usa tus credenciales de AWS (`aws login`). Strands genera llaves
+temporales de Bedrock y las renueva solo.
 
 Ejecutar:
     uv run python demo-1-simple/agente_simple.py
 """
-
-import os
 
 from dotenv import load_dotenv
 from strands import Agent, tool
@@ -17,14 +16,12 @@ from strands.models.openai import OpenAIModel
 
 from herramientas import calcular, hora_actual, tablero
 
-load_dotenv()
-BEDROCK_URL = os.environ["OPENAI_BASE_URL"]  # endpoint de Bedrock compatible con OpenAI
-API_KEY = os.environ["OPENAI_API_KEY"]  # API key de Amazon Bedrock
+load_dotenv()  # opcional: p. ej. AWS_CA_BUNDLE si un antivirus inspecciona HTTPS
 
-# 1) EL MOTOR: un LLM en Amazon Bedrock
+# 1) EL MOTOR: un LLM en Amazon Bedrock (endpoint compatible con OpenAI)
 motor = OpenAIModel(
     model_id="openai.gpt-oss-120b",
-    client_args={"base_url": BEDROCK_URL, "api_key": API_KEY},
+    bedrock_mantle_config={"region": "us-east-2"},  # sin API keys: usa IAM
     params={"reasoning_effort": "low"},
 )
 

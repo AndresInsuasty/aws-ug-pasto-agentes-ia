@@ -26,9 +26,9 @@ Charla del **AWS User Group Pasto** 🇨🇴. Explica qué es un agente de IA co
 ## Requisitos
 
 - Python 3.12+ y [uv](https://docs.astral.sh/uv/)
-- Una cuenta de AWS con Amazon Bedrock y una **API key de Bedrock** (consola de Bedrock → *API keys*)
-- Copia `.env.example` a `.env` y pon tu API key y la URL del endpoint compatible con OpenAI de tu región (para la demo 1; las llaves de corta duración vencen en 12 h)
+- Una cuenta de AWS con Amazon Bedrock (no hace falta API key: las demos generan llaves temporales con tus credenciales)
 - AWS CLI configurado (`aws login` o `aws configure`), **no root**
+- ¿Antivirus o proxy que inspecciona HTTPS? Copia `.env.example` a `.env` y define `AWS_CA_BUNDLE`
 - Para desplegar: Node.js 18+ y Docker Desktop encendido
 
 ```bash
