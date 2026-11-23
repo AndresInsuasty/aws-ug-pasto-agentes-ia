@@ -49,6 +49,6 @@ if __name__ == "__main__":
         "Tengo tres preguntas:\n"
         "1. ¿Qué hora es en Bogotá?\n"
         "2. ¿Cuánto es 3111 * 37 / 4?\n"
-        "3. ¿Cuántas letras 'a' tiene la palabra 'Ananay'?"
+        "3. ¿Cuántas letras 'a' tiene la palabra 'Achichay'?"
     )
     print("\n")

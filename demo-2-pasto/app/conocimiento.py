@@ -79,10 +79,10 @@ DOCUMENTOS: list[dict] = [
     },
     {
         "titulo": "Expresiones pastusas",
-        "claves": ["achichay", "ananay", "atatay", "expresion", "expresión", "dicho", "hablar", "palabra", "quechua"],
+        "claves": ["achichay", "atatay", "expresion", "expresión", "dicho", "hablar", "palabra", "quechua"],
         "texto": (
             "Expresiones de origen quechua que se escuchan en Pasto: '¡Achichay!' (¡qué frío!), "
-            "'¡Ananay!' (¡qué bonito!), '¡Atatay!' (¡qué asco / qué feo!) y '¡Arrarray!' (¡qué calor / quema!)."
+            "'¡Atatay!' (¡qué asco / qué feo!) y '¡Arrarray!' (¡qué calor / quema!)."
         ),
     },
     {
