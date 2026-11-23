@@ -20,22 +20,49 @@ log = logging.getLogger("agente-galeras")
 MAX_IMAGENES_TOTAL = int(os.getenv("MAX_IMAGENES_TOTAL", "250"))
 _lock_contador = threading.Lock()
 
-PROMPT_SVG = """You are a vector illustrator. Draw the requested scene as ONE self-contained SVG.
-Rules:
+PROMPT_SVG = """You are an award-winning digital illustrator who paints with SVG. Create ONE rich, polished,
+semi-realistic illustration of the requested scene, like a frame from an animated movie.
+
+Output rules:
 - Output ONLY the SVG markup, starting with <svg and ending with </svg>. No markdown, no explanations.
 - Use viewBox="0 0 512 512" and xmlns="http://www.w3.org/2000/svg".
-- Draw in painter's order: background and sky first, then landscape, then the main subject, then small details.
-- Flat, colorful, festive illustration style. Make the main subject big, centered and clearly recognizable.
-- Use only basic shapes: rect, circle, ellipse, polygon, path, line, g, linearGradient, radialGradient.
-- No <text>, no <script>, no <image>, no <foreignObject>, no external links, no event attributes.
-- Keep it under 90 elements."""
+- Put ALL gradients and filters inside ONE <defs> block at the very beginning (give each a short id).
+- Then paint in this order: sky, distant background, middle ground, main subject, foreground, lighting effects.
+
+Make it look great:
+- Sky and large surfaces use linearGradient / radialGradient, never flat fills.
+- Pick one light source (sun, moon, lamps). Add highlights on the lit side and soft shadows on the other.
+- Atmospheric perspective: distant mountains lighter, bluer and less saturated; foreground darker and richer.
+- Soft shadows under objects: an ellipse with filter feGaussianBlur and low opacity.
+- Glow for lights or the sun: radialGradient that fades to transparent (stop-opacity 0).
+- Shape objects with curved <path> elements (cubic béziers), not just boxes and circles.
+- COMPOSITION: the main subject is the hero. It must fill 50-70% of the canvas height (about 260-360 px tall),
+  placed in the center or lower-center, close to the viewer. The background only frames it.
+- The main subject is detailed (eyes with highlights, fur/cloth folds, textures, small accessories),
+  expressive and clearly recognizable. Spend most of your elements on it.
+- A cohesive, vibrant color palette of 5-7 harmonious colors.
+- Optional: ONE subtle texture or glow filter (feTurbulence or feGaussianBlur). Never more than 3 filters.
+
+Allowed elements: svg, defs, g, rect, circle, ellipse, polygon, polyline, path, line, linearGradient,
+radialGradient, stop, clipPath, mask, filter and fe* filter primitives.
+Forbidden: text, script, image, use, foreignObject, style elements, links, event attributes.
+Keep it under 160 elements."""
 
 _ETIQUETA = re.compile(r"<(/?)([a-zA-Z][\w:-]*)[^<>]*?(/?)>")
-_PROHIBIDOS = {"script", "foreignObject", "image", "iframe", "a", "use", "text", "style"}
+# Lista blanca: formas, degradados, máscaras y filtros. Nada de texto, scripts, imágenes ni enlaces.
+_PERMITIDOS = {
+    "svg", "defs", "g", "title", "desc", "rect", "circle", "ellipse", "polygon", "polyline", "path", "line",
+    "linearGradient", "radialGradient", "stop", "clipPath", "mask", "pattern", "filter",
+    "feGaussianBlur", "feTurbulence", "feDisplacementMap", "feColorMatrix", "feComponentTransfer",
+    "feFuncR", "feFuncG", "feFuncB", "feFuncA", "feOffset", "feFlood", "feComposite", "feBlend",
+    "feMerge", "feMergeNode", "feMorphology", "feDropShadow", "feSpecularLighting", "feDiffuseLighting",
+    "fePointLight", "feDistantLight",
+}
+_URL_EXTERNA = re.compile(r"url\(\s*['\"]?(?!#)", re.I)
 
 
 def _limpiar_svg(svg: str) -> str | None:
-    """Valida que sea SVG y quita cualquier cosa ejecutable (defensa extra: además se muestra con <img>)."""
+    """Valida que sea SVG y deja solo lo de la lista blanca (defensa extra: además se muestra con <img>)."""
     m = re.search(r"<svg[\s\S]*?</svg>", svg)
     if not m:
         return None
@@ -43,13 +70,17 @@ def _limpiar_svg(svg: str) -> str | None:
         raiz = ET.fromstring(m.group(0))
     except ET.ParseError:
         return None
+    if raiz.tag.split("}")[-1] != "svg":
+        return None
     for padre in raiz.iter():
         for hijo in list(padre):
-            if hijo.tag.split("}")[-1] in _PROHIBIDOS:
+            if hijo.tag.split("}")[-1] not in _PERMITIDOS:
                 padre.remove(hijo)
         for attr in list(padre.attrib):
             nombre = attr.split("}")[-1].lower()
-            if nombre.startswith("on") or nombre == "href" or "javascript:" in padre.attrib[attr].lower():
+            valor = padre.attrib[attr].lower()
+            # sin eventos, sin enlaces y sin url() hacia afuera (solo url(#id) dentro del mismo dibujo)
+            if nombre.startswith("on") or nombre == "href" or "javascript:" in valor or _URL_EXTERNA.search(valor):
                 del padre.attrib[attr]
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     return ET.tostring(raiz, encoding="unicode")
@@ -80,7 +111,7 @@ def _svg_parcial(texto: str) -> str | None:
 def dibujar_en_vivo(descripcion: str, al_avanzar, modelo: str = ILUSTRADOR_ID) -> str | None:
     """Pide el SVG en streaming y va mostrando el boceto mientras el modelo lo escribe."""
     stream = cliente.chat.completions.create(
-        model=modelo, stream=True, max_tokens=9000, temperature=0.7,
+        model=modelo, stream=True, max_tokens=16000, temperature=0.7,
         messages=[{"role": "system", "content": PROMPT_SVG}, {"role": "user", "content": descripcion[:1500]}],
     )
     texto, ultimo_envio, ultimo_bueno = "", 0.0, None
